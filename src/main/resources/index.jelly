@@ -1,0 +1,4 @@
+<?jelly escape-by-default='true'?>
+<div>
+    A Jenkins plugin to keep artifacts and Pipeline stashes in JFrog Artifactory
+</div>
