@@ -4,6 +4,7 @@ import com.cloudbees.plugins.credentials.CredentialsMatchers;
 import com.cloudbees.plugins.credentials.CredentialsProvider;
 import com.cloudbees.plugins.credentials.common.StandardListBoxModel;
 import com.cloudbees.plugins.credentials.common.StandardUsernameCredentials;
+import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.Extension;
 import hudson.ExtensionList;
 import hudson.model.AbstractDescribableImpl;
@@ -21,7 +22,7 @@ import org.kohsuke.stapler.DataBoundSetter;
 import org.kohsuke.stapler.StaplerRequest;
 
 @Extension
-public class ArtifactoryArtifactConfig extends AbstractDescribableImpl<ArtifactoryArtifactConfig>
+public class ArtifactoryGenericArtifactConfig extends AbstractDescribableImpl<ArtifactoryGenericArtifactConfig>
         implements Serializable {
 
     private static final long serialVersionUID = 1L;
@@ -32,7 +33,7 @@ public class ArtifactoryArtifactConfig extends AbstractDescribableImpl<Artifacto
     private String prefix;
 
     @DataBoundConstructor
-    public ArtifactoryArtifactConfig() {}
+    public ArtifactoryGenericArtifactConfig() {}
 
     public String getStorageCredentialId() {
         return storageCredentialId;
@@ -70,15 +71,21 @@ public class ArtifactoryArtifactConfig extends AbstractDescribableImpl<Artifacto
         this.prefix = prefix;
     }
 
-    public static ArtifactoryArtifactConfig get() {
-        return ExtensionList.lookupSingleton(ArtifactoryArtifactConfig.class);
+    public static ArtifactoryGenericArtifactConfig get() {
+        return ExtensionList.lookupSingleton(ArtifactoryGenericArtifactConfig.class);
     }
 
     @Extension
-    public static final class DescriptorImpl extends Descriptor<ArtifactoryArtifactConfig> {
+    public static final class DescriptorImpl extends Descriptor<ArtifactoryGenericArtifactConfig> {
 
         public DescriptorImpl() {
             load();
+        }
+
+        @NonNull
+        @Override
+        public String getDisplayName() {
+            return "Generic";
         }
 
         @Override

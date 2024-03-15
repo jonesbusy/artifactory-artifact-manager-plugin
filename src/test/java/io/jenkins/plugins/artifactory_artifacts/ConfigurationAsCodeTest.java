@@ -11,9 +11,9 @@ public class ConfigurationAsCodeTest {
     @Test
     @ConfiguredWithCode("configuration-as-code.yml")
     public void shouldSupportConfigurationAsCode(JenkinsConfiguredWithCodeRule jenkinsRule) throws Exception {
-        ArtifactoryArtifactConfig.DescriptorImpl extension = jenkinsRule
+        ArtifactoryGenericArtifactConfig.DescriptorImpl extension = jenkinsRule
                 .getInstance()
-                .getExtensionList(ArtifactoryArtifactConfig.DescriptorImpl.class)
+                .getExtensionList(ArtifactoryGenericArtifactConfig.DescriptorImpl.class)
                 .get(0);
     }
 }
