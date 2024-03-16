@@ -56,11 +56,19 @@ public class ArtifactoryVirtualFile extends ArtifactoryAbstractVirtualFile {
 
     @Override
     public boolean isDirectory() throws IOException {
+        String keyWithNoSlash = stripTrailingSlash(this.key);
+        if (keyWithNoSlash.endsWith("/*view*")) {
+            return false;
+        }
         return new ArtifactoryClient().isFolder(this.key);
     }
 
     @Override
     public boolean isFile() throws IOException {
+        String keyS = this.key + "/";
+        if (keyS.endsWith("/*view*/")) {
+            return false;
+        }
         return new ArtifactoryClient().isFile(this.key);
     }
 
@@ -85,12 +93,12 @@ public class ArtifactoryVirtualFile extends ArtifactoryAbstractVirtualFile {
 
     @Override
     public long length() throws IOException {
-        return 0;
+        return new ArtifactoryClient().size(this.key);
     }
 
     @Override
     public long lastModified() throws IOException {
-        return 0;
+        return new ArtifactoryClient().lastUpdated(this.key);
     }
 
     @Override
@@ -100,6 +108,7 @@ public class ArtifactoryVirtualFile extends ArtifactoryAbstractVirtualFile {
 
     @Override
     public InputStream open() throws IOException {
+        LOGGER.info(String.format("Opening %s...", this.key));
         if (isDirectory()) {
             throw new FileNotFoundException("Cannot open it because it is a directory.");
         }

@@ -11,6 +11,7 @@ import org.jfrog.artifactory.client.Artifactory;
 import org.jfrog.artifactory.client.ArtifactoryClientBuilder;
 import org.jfrog.artifactory.client.DownloadableArtifact;
 import org.jfrog.artifactory.client.UploadableArtifact;
+import org.jfrog.artifactory.client.model.File;
 import org.jfrog.filespecs.FileSpec;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -79,6 +80,32 @@ class ArtifactoryClient {
 
     public boolean isFile(String targetPath) throws IOException {
         return !isFolder(targetPath);
+    }
+
+    public long lastUpdated(String targetPath) throws IOException {
+        LOGGER.info(String.format("Getting last updated time for %s", targetPath));
+        try (Artifactory artifactory = buildArtifactory()) {
+            return artifactory
+                    .repository(config.getRepository())
+                    .file(targetPath)
+                    .info()
+                    .getLastModified()
+                    .getTime();
+        }
+    }
+
+    public long size(String targetPath) throws IOException {
+        if (isFolder(targetPath)) {
+            return 0;
+        }
+        LOGGER.info(String.format("Getting size for %s", targetPath));
+        try (Artifactory artifactory = buildArtifactory()) {
+            File file = artifactory
+                    .repository(config.getRepository())
+                    .file(targetPath)
+                    .info();
+            return file.getSize();
+        }
     }
 
     private Artifactory buildArtifactory() {
