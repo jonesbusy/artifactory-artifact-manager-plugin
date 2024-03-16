@@ -15,6 +15,8 @@ import hudson.security.ACL;
 import hudson.util.FormValidation;
 import hudson.util.ListBoxModel;
 import java.io.Serializable;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.Collections;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
@@ -23,8 +25,7 @@ import net.sf.json.JSONObject;
 import org.apache.commons.lang3.StringUtils;
 import org.jfrog.artifactory.client.Artifactory;
 import org.jfrog.artifactory.client.ArtifactoryClientBuilder;
-import org.jfrog.artifactory.client.RepositoryHandle;
-import org.jfrog.artifactory.client.model.RepositoryType;
+import org.jfrog.artifactory.client.UploadableArtifact;
 import org.kohsuke.stapler.*;
 import org.kohsuke.stapler.interceptor.RequirePOST;
 
@@ -168,6 +169,8 @@ public class ArtifactoryGenericArtifactConfig extends AbstractDescribableImpl<Ar
             Jenkins.get().checkPermission(Jenkins.ADMINISTER);
             FormValidation ret = FormValidation.ok("Success");
 
+            String defaultPrefix = StringUtils.isBlank(prefix) ? "" : prefix;
+
             // Retrieve credentials from storageCredentialsId
             StandardUsernamePasswordCredentials credentials = CredentialsMatchers.firstOrNull(
                     CredentialsProvider.lookupCredentialsInItemGroup(
@@ -192,13 +195,22 @@ public class ArtifactoryGenericArtifactConfig extends AbstractDescribableImpl<Ar
                     .setPassword(credentials.getPassword().getPlainText())
                     .build()) {
                 LOGGER.info("Validating Artifactory configuration...");
-                RepositoryHandle repositoryHandle = artifactory.repositories().repository(repository);
-                if (!repositoryHandle.exists()) {
-                    return FormValidation.error("Repository doesn't exists.");
-                }
+
+                // Upload temporary file and delete it
+                Path tmpFile = Files.createTempFile("tmp-", "jenkins-artifactory-plugin-test");
+                UploadableArtifact artifact = artifactory
+                        .repository(repository)
+                        .upload(defaultPrefix + tmpFile.getFileName().toString(), tmpFile.toFile());
+                artifact.doUpload();
+                artifactory
+                        .repository(repository)
+                        .delete(defaultPrefix + tmpFile.getFileName().toString());
+
                 LOGGER.info("Artifactory configuration validated");
             } catch (Exception e) {
-                ret = FormValidation.error("Unable to connect to Artifactory. Please check the server url and credentials : " + e.getMessage());
+                ret = FormValidation.error(
+                        "Unable to connect to Artifactory. Please check the server url and credentials : "
+                                + e.getMessage());
                 LOGGER.warning(e.getMessage());
                 return ret;
             }
