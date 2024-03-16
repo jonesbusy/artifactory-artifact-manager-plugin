@@ -4,7 +4,6 @@ import com.cloudbees.plugins.credentials.CredentialsMatchers;
 import com.cloudbees.plugins.credentials.CredentialsProvider;
 import com.cloudbees.plugins.credentials.common.StandardListBoxModel;
 import com.cloudbees.plugins.credentials.common.StandardUsernameCredentials;
-import com.cloudbees.plugins.credentials.common.StandardUsernamePasswordCredentials;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.Extension;
 import hudson.ExtensionList;
@@ -23,9 +22,6 @@ import java.util.regex.Pattern;
 import jenkins.model.Jenkins;
 import net.sf.json.JSONObject;
 import org.apache.commons.lang3.StringUtils;
-import org.jfrog.artifactory.client.Artifactory;
-import org.jfrog.artifactory.client.ArtifactoryClientBuilder;
-import org.jfrog.artifactory.client.UploadableArtifact;
 import org.kohsuke.stapler.*;
 import org.kohsuke.stapler.interceptor.RequirePOST;
 
@@ -48,6 +44,14 @@ public class ArtifactoryGenericArtifactConfig extends AbstractDescribableImpl<Ar
 
     @DataBoundConstructor
     public ArtifactoryGenericArtifactConfig() {}
+
+    public ArtifactoryGenericArtifactConfig(
+            String storageCredentialId, String serverUrl, String repository, String prefix) {
+        this.storageCredentialId = storageCredentialId;
+        this.serverUrl = serverUrl;
+        this.repository = repository;
+        this.prefix = prefix;
+    }
 
     public String getStorageCredentialId() {
         return storageCredentialId;
@@ -166,56 +170,34 @@ public class ArtifactoryGenericArtifactConfig extends AbstractDescribableImpl<Ar
                 @QueryParameter("storageCredentialId") final String storageCredentialId,
                 @QueryParameter("repository") final String repository,
                 @QueryParameter("prefix") final String prefix) {
+
             Jenkins.get().checkPermission(Jenkins.ADMINISTER);
-            FormValidation ret = FormValidation.ok("Success");
 
-            String defaultPrefix = StringUtils.isBlank(prefix) ? "" : prefix;
-
-            // Retrieve credentials from storageCredentialsId
-            StandardUsernamePasswordCredentials credentials = CredentialsMatchers.firstOrNull(
-                    CredentialsProvider.lookupCredentialsInItemGroup(
-                            StandardUsernamePasswordCredentials.class,
-                            Jenkins.get(),
-                            ACL.SYSTEM2,
-                            Collections.emptyList()),
-                    CredentialsMatchers.allOf(
-                            CredentialsMatchers.withId(storageCredentialId),
-                            CredentialsMatchers.instanceOf(StandardUsernamePasswordCredentials.class)));
-
-            if (credentials == null) {
-                return FormValidation.error("Credentials not found");
+            if (StringUtils.isBlank(serverUrl)
+                    || StringUtils.isBlank(storageCredentialId)
+                    || StringUtils.isBlank(repository)) {
+                return FormValidation.error("Fields required");
             }
 
-            try (Artifactory artifactory = ArtifactoryClientBuilder.create()
-                    .setUrl(serverUrl)
-                    .setUsername(credentials.getUsername())
-                    .addInterceptorLast((request, httpContext) -> {
-                        LOGGER.info("Artifactory request: " + request.getRequestLine());
-                    })
-                    .setPassword(credentials.getPassword().getPlainText())
-                    .build()) {
-                LOGGER.info("Validating Artifactory configuration...");
-
-                // Upload temporary file and delete it
+            try {
                 Path tmpFile = Files.createTempFile("tmp-", "jenkins-artifactory-plugin-test");
-                UploadableArtifact artifact = artifactory
-                        .repository(repository)
-                        .upload(defaultPrefix + tmpFile.getFileName().toString(), tmpFile.toFile());
-                artifact.doUpload();
-                artifactory
-                        .repository(repository)
-                        .delete(defaultPrefix + tmpFile.getFileName().toString());
+                ArtifactoryClient client = new ArtifactoryClient(
+                        new ArtifactoryGenericArtifactConfig(storageCredentialId, serverUrl, repository, prefix));
+
+                // Upload and delete artifact to check connectivity
+                client.uploadArtifact(tmpFile, Utils.getPath(prefix, tmpFile));
+                client.deleteArtifact(Utils.getPath(prefix, tmpFile));
 
                 LOGGER.info("Artifactory configuration validated");
+
             } catch (Exception e) {
-                ret = FormValidation.error(
+                LOGGER.warning(e.getMessage());
+                return FormValidation.error(
                         "Unable to connect to Artifactory. Please check the server url and credentials : "
                                 + e.getMessage());
-                LOGGER.warning(e.getMessage());
-                return ret;
             }
 
-            return ret;
+            return FormValidation.ok("Success");
         }
     }
 }
