@@ -1,0 +1,29 @@
+version: "3.9"
+services:
+
+  # Adminadmin123$
+  # cmVmdGtuOjAxOjE3NDIxMDA2MTY6dVc5Qm5pTG1CZElBMmVyRG9xZDd6VmJhTmVX
+  artifactory:
+    image: releases-docker.jfrog.io/jfrog/artifactory-oss:latest
+    container_name: artifactory
+    restart: always
+    ports:
+      - "8046:8046"
+      - "8081:8081"
+      - "8082:8082"
+      - "8086:8086"
+      - "8070:8070"
+    volumes:
+      - artifactory:/var/opt/jfrog/artifactory
+    deploy:
+        resources:
+            limits:
+              cpus: "1"
+              memory: 2G
+            reservations:
+              cpus: "0.5"
+              memory: 1G
+
+volumes:
+    artifactory:
+        driver: local

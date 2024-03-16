@@ -4,6 +4,7 @@ import com.cloudbees.plugins.credentials.CredentialsMatchers;
 import com.cloudbees.plugins.credentials.CredentialsProvider;
 import com.cloudbees.plugins.credentials.common.StandardListBoxModel;
 import com.cloudbees.plugins.credentials.common.StandardUsernameCredentials;
+import com.cloudbees.plugins.credentials.common.StandardUsernamePasswordCredentials;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.Extension;
 import hudson.ExtensionList;
@@ -11,21 +12,33 @@ import hudson.model.AbstractDescribableImpl;
 import hudson.model.Descriptor;
 import hudson.model.Item;
 import hudson.security.ACL;
+import hudson.util.FormValidation;
 import hudson.util.ListBoxModel;
 import java.io.Serializable;
 import java.util.Collections;
+import java.util.logging.Logger;
+import java.util.regex.Pattern;
 import jenkins.model.Jenkins;
 import net.sf.json.JSONObject;
-import org.kohsuke.stapler.AncestorInPath;
-import org.kohsuke.stapler.DataBoundConstructor;
-import org.kohsuke.stapler.DataBoundSetter;
-import org.kohsuke.stapler.StaplerRequest;
+import org.apache.commons.lang3.StringUtils;
+import org.jfrog.artifactory.client.Artifactory;
+import org.jfrog.artifactory.client.ArtifactoryClientBuilder;
+import org.jfrog.artifactory.client.RepositoryHandle;
+import org.jfrog.artifactory.client.model.RepositoryType;
+import org.kohsuke.stapler.*;
+import org.kohsuke.stapler.interceptor.RequirePOST;
 
 @Extension
 public class ArtifactoryGenericArtifactConfig extends AbstractDescribableImpl<ArtifactoryGenericArtifactConfig>
         implements Serializable {
 
     private static final long serialVersionUID = 1L;
+
+    private static final String SERVER_URL_REGEXP =
+            "^(http://|https://)[a-z0-9][a-z0-9-.]{0,}(?::[0-9]{1,5})?(/[0-9a-zA-Z_]*)*$";
+    private static final Pattern endPointPattern = Pattern.compile(SERVER_URL_REGEXP, Pattern.CASE_INSENSITIVE);
+
+    public static final Logger LOGGER = Logger.getLogger(ArtifactoryGenericArtifactConfig.class.getName());
 
     private String storageCredentialId;
     private String serverUrl;
@@ -113,6 +126,84 @@ public class ArtifactoryGenericArtifactConfig extends AbstractDescribableImpl<Ar
                             Collections.emptyList(),
                             CredentialsMatchers.instanceOf(StandardUsernameCredentials.class))
                     .includeCurrentValue(get().getStorageCredentialId());
+        }
+
+        public FormValidation doCheckPrefix(@QueryParameter String prefix) {
+            FormValidation ret;
+            if (StringUtils.isBlank(prefix)) {
+                ret = FormValidation.ok("Artifacts will be stored in the root folder of the Artifactory Repository.");
+            } else if (prefix.endsWith("/")) {
+                ret = FormValidation.ok();
+            } else {
+                ret = FormValidation.error("A prefix must end with a slash.");
+            }
+            return ret;
+        }
+
+        public FormValidation doCheckRepository(@QueryParameter String repository) {
+            FormValidation ret = FormValidation.ok();
+            if (StringUtils.isBlank(repository)) {
+                ret = FormValidation.error("Repository cannot be blank");
+            }
+            //
+            return ret;
+        }
+
+        public FormValidation doCheckServerUrl(@QueryParameter String serverUrl) {
+            FormValidation ret = FormValidation.ok();
+            if (StringUtils.isBlank(serverUrl)) {
+                ret = FormValidation.error("Server url cannot be blank");
+            } else if (!endPointPattern.matcher(serverUrl).matches()) {
+                ret = FormValidation.error("Server url doesn't seem valid. Should start with http:// or https://");
+            }
+            return ret;
+        }
+
+        @RequirePOST
+        public FormValidation doValidateArtifactoryConfig(
+                @QueryParameter("serverUrl") final String serverUrl,
+                @QueryParameter("storageCredentialId") final String storageCredentialId,
+                @QueryParameter("repository") final String repository,
+                @QueryParameter("prefix") final String prefix) {
+            Jenkins.get().checkPermission(Jenkins.ADMINISTER);
+            FormValidation ret = FormValidation.ok("Success");
+
+            // Retrieve credentials from storageCredentialsId
+            StandardUsernamePasswordCredentials credentials = CredentialsMatchers.firstOrNull(
+                    CredentialsProvider.lookupCredentialsInItemGroup(
+                            StandardUsernamePasswordCredentials.class,
+                            Jenkins.get(),
+                            ACL.SYSTEM2,
+                            Collections.emptyList()),
+                    CredentialsMatchers.allOf(
+                            CredentialsMatchers.withId(storageCredentialId),
+                            CredentialsMatchers.instanceOf(StandardUsernamePasswordCredentials.class)));
+
+            if (credentials == null) {
+                return FormValidation.error("Credentials not found");
+            }
+
+            try (Artifactory artifactory = ArtifactoryClientBuilder.create()
+                    .setUrl(serverUrl)
+                    .setUsername(credentials.getUsername())
+                    .addInterceptorLast((request, httpContext) -> {
+                        LOGGER.info("Artifactory request: " + request.getRequestLine());
+                    })
+                    .setPassword(credentials.getPassword().getPlainText())
+                    .build()) {
+                LOGGER.info("Validating Artifactory configuration...");
+                RepositoryHandle repositoryHandle = artifactory.repositories().repository(repository);
+                if (!repositoryHandle.exists()) {
+                    return FormValidation.error("Repository doesn't exists.");
+                }
+                LOGGER.info("Artifactory configuration validated");
+            } catch (Exception e) {
+                ret = FormValidation.error("Unable to connect to Artifactory. Please check the server url and credentials : " + e.getMessage());
+                LOGGER.warning(e.getMessage());
+                return ret;
+            }
+
+            return ret;
         }
     }
 }
