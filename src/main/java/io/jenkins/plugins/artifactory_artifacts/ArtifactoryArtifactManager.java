@@ -12,17 +12,18 @@ import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.logging.Logger;
 import jenkins.MasterToSlaveFileCallable;
 import jenkins.model.ArtifactManager;
 import jenkins.util.VirtualFile;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @Restricted(NoExternalUse.class)
 public class ArtifactoryArtifactManager extends ArtifactManager {
 
-    private static final Logger LOGGER = Logger.getLogger(ArtifactManager.class.getName());
+    private static final Logger LOGGER = LoggerFactory.getLogger(ArtifactoryArtifactManager.class);
     private transient Run<?, ?> build;
     private final ArtifactoryGenericArtifactConfig config;
     private transient String defaultKey;
@@ -60,9 +61,9 @@ public class ArtifactoryArtifactManager extends ArtifactManager {
     public boolean delete() throws IOException, InterruptedException {
         String virtualPath = getFilePath("");
         ArtifactoryClient client = new ArtifactoryClient();
-        LOGGER.info(String.format("Deleting %s...", virtualPath));
+        LOGGER.trace(String.format("Deleting %s...", virtualPath));
         client.deleteArtifact(virtualPath);
-        LOGGER.info(String.format("Deleted %s", virtualPath));
+        LOGGER.trace(String.format("Deleted %s", virtualPath));
         return true;
     }
 
@@ -112,7 +113,7 @@ public class ArtifactoryArtifactManager extends ArtifactManager {
         public Void invoke(File f, VirtualChannel channel) throws IOException, InterruptedException {
             ArtifactoryClient client = new ArtifactoryClient();
             for (UploadFile file : files) {
-                LOGGER.info(String.format("Uploading %s to %s", file.getName(), file.getUrl()));
+                LOGGER.debug(String.format("Uploading %s to %s", file.getName(), file.getUrl()));
                 client.uploadArtifact(new File(f, file.getName()).toPath(), file.getUrl());
             }
             return null;

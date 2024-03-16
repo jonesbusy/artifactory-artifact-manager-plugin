@@ -189,7 +189,7 @@ public class ArtifactoryGenericArtifactConfig extends AbstractDescribableImpl<Ar
                 client.uploadArtifact(tmpFile, Utils.getPath(prefix, tmpFile));
                 client.deleteArtifact(Utils.getPath(prefix, tmpFile));
 
-                LOGGER.info("Artifactory configuration validated");
+                LOGGER.debug("Artifactory configuration validated");
 
             } catch (Exception e) {
                 LOGGER.error("Unable to connect to Artifactory. Please check the server url and credentials", e);

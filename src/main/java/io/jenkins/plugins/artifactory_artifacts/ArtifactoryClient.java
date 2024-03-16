@@ -33,7 +33,6 @@ class ArtifactoryClient {
     }
 
     public void uploadArtifact(Path file, String targetPath) throws IOException {
-        LOGGER.info("Uploading artifact to " + targetPath);
         try (Artifactory artifactory = buildArtifactory()) {
             UploadableArtifact artifact =
                     artifactory.repository(config.getRepository()).upload(targetPath, file.toFile());
@@ -41,7 +40,7 @@ class ArtifactoryClient {
             artifact.withListener(
                     (bytesRead, totalBytes) -> LOGGER.info(String.format("Uploaded %d/%d", bytesRead, totalBytes)));
             artifact.doUpload();
-            LOGGER.info("Uploaded artifact to " + targetPath);
+            LOGGER.trace(String.format("Uploaded %s to %s", file, targetPath));
         }
     }
 
@@ -83,7 +82,7 @@ class ArtifactoryClient {
     }
 
     public long lastUpdated(String targetPath) throws IOException {
-        LOGGER.info(String.format("Getting last updated time for %s", targetPath));
+        LOGGER.trace(String.format("Getting last updated time for %s", targetPath));
         try (Artifactory artifactory = buildArtifactory()) {
             return artifactory
                     .repository(config.getRepository())
@@ -98,7 +97,7 @@ class ArtifactoryClient {
         if (isFolder(targetPath)) {
             return 0;
         }
-        LOGGER.info(String.format("Getting size for %s", targetPath));
+        LOGGER.trace(String.format("Getting size for %s", targetPath));
         try (Artifactory artifactory = buildArtifactory()) {
             File file = artifactory
                     .repository(config.getRepository())

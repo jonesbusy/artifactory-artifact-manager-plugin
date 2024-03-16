@@ -1,5 +1,6 @@
 package io.jenkins.plugins.artifactory_artifacts;
 
+import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.model.Run;
 import java.io.FileNotFoundException;
@@ -7,6 +8,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -47,6 +49,12 @@ public class ArtifactoryVirtualFile extends ArtifactoryAbstractVirtualFile {
         } catch (URISyntaxException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    @CheckForNull
+    @Override
+    public URL toExternalURL() throws IOException {
+        return super.toExternalURL();
     }
 
     @Override
