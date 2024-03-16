@@ -54,7 +54,7 @@ public class ArtifactoryVirtualFile extends ArtifactoryAbstractVirtualFile {
     @CheckForNull
     @Override
     public URL toExternalURL() throws IOException {
-        return super.toExternalURL();
+        return new URL(Utils.getUrl(this.key));
     }
 
     @Override

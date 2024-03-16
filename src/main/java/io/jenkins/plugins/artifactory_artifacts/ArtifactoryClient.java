@@ -38,7 +38,7 @@ class ArtifactoryClient {
                     artifactory.repository(config.getRepository()).upload(targetPath, file.toFile());
             artifact.withSize(Files.size(file));
             artifact.withListener(
-                    (bytesRead, totalBytes) -> LOGGER.info(String.format("Uploaded %d/%d", bytesRead, totalBytes)));
+                    (bytesRead, totalBytes) -> LOGGER.trace(String.format("Uploaded %d/%d", bytesRead, totalBytes)));
             artifact.doUpload();
             LOGGER.trace(String.format("Uploaded %s to %s", file, targetPath));
         }
