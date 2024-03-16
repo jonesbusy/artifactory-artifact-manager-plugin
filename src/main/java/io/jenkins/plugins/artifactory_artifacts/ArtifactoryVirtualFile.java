@@ -7,13 +7,17 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.util.logging.Logger;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import jenkins.util.VirtualFile;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class ArtifactoryVirtualFile extends ArtifactoryAbstractVirtualFile {
 
     private static final long serialVersionUID = 1L;
-    private static final Logger LOGGER = Logger.getLogger(ArtifactoryVirtualFile.class.getName());
+    private static final Logger LOGGER = LoggerFactory.getLogger(ArtifactoryVirtualFile.class);
 
     private final String key;
 
@@ -47,17 +51,17 @@ public class ArtifactoryVirtualFile extends ArtifactoryAbstractVirtualFile {
 
     @Override
     public VirtualFile getParent() {
-        return null;
+        return new ArtifactoryVirtualFile(this.key.replaceFirst("/[^/]+$", ""), this.build);
     }
 
     @Override
     public boolean isDirectory() throws IOException {
-        return false;
+        return new ArtifactoryClient().isFolder(this.key);
     }
 
     @Override
     public boolean isFile() throws IOException {
-        return true;
+        return new ArtifactoryClient().isFile(this.key);
     }
 
     @Override
@@ -68,7 +72,8 @@ public class ArtifactoryVirtualFile extends ArtifactoryAbstractVirtualFile {
     @NonNull
     @Override
     public VirtualFile[] list() throws IOException {
-        return new VirtualFile[0];
+        String prefix = stripTrailingSlash(this.key) + "/";
+        return listFilesFromPrefix(prefix).toArray(new VirtualFile[0]);
     }
 
     @NonNull
@@ -103,6 +108,21 @@ public class ArtifactoryVirtualFile extends ArtifactoryAbstractVirtualFile {
         }
         ArtifactoryClient client = new ArtifactoryClient();
         return client.downloadArtifact(this.key);
+    }
+
+    private List<VirtualFile> listFilesFromPrefix(String prefix) {
+        ArtifactoryClient client = new ArtifactoryClient();
+        try {
+            List<String> files = client.list(prefix);
+            List<VirtualFile> virtualFiles = new ArrayList<>();
+            for (String file : files) {
+                virtualFiles.add(new ArtifactoryVirtualFile(stripTrailingSlash(file), this.build));
+            }
+            return virtualFiles;
+        } catch (IOException e) {
+            LOGGER.warn(String.format("Failed to list files from prefix %s", prefix), e);
+            return Collections.emptyList();
+        }
     }
 
     private String stripTrailingSlash(String key) {

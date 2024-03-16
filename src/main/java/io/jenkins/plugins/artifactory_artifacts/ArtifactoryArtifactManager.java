@@ -59,13 +59,16 @@ public class ArtifactoryArtifactManager extends ArtifactManager {
     @Override
     public boolean delete() throws IOException, InterruptedException {
         String virtualPath = getFilePath("");
-        LOGGER.info(String.format("Deleting all files under %s", virtualPath));
+        ArtifactoryClient client = new ArtifactoryClient();
+        LOGGER.info(String.format("Deleting %s...", virtualPath));
+        client.deleteArtifact(virtualPath);
+        LOGGER.info(String.format("Deleted %s", virtualPath));
         return true;
     }
 
     @Override
     public VirtualFile root() {
-        return new ArtifactoryVirtualFile("artifacts", build);
+        return new ArtifactoryVirtualFile(getFilePath("artifacts"), build);
     }
 
     private String getFilePath(String path) {

@@ -5,10 +5,13 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.List;
+import java.util.stream.Collectors;
 import org.jfrog.artifactory.client.Artifactory;
 import org.jfrog.artifactory.client.ArtifactoryClientBuilder;
 import org.jfrog.artifactory.client.DownloadableArtifact;
 import org.jfrog.artifactory.client.UploadableArtifact;
+import org.jfrog.filespecs.FileSpec;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -53,6 +56,29 @@ class ArtifactoryClient {
                     artifactory.repository(config.getRepository()).download(targetPath);
             return artifact.doDownload();
         }
+    }
+
+    public boolean isFolder(String targetPath) throws IOException {
+        try (Artifactory artifactory = buildArtifactory()) {
+            return artifactory.repository(config.getRepository()).isFolder(targetPath);
+        }
+    }
+
+    public List<String> list(String targetPath) throws IOException {
+        if (!isFolder(targetPath)) {
+            throw new IllegalArgumentException("Target path is not a folder. Cannot list files");
+        }
+        try (Artifactory artifactory = buildArtifactory()) {
+            FileSpec fileSpec = FileSpec.fromString(
+                    String.format("{\"files\": [{\"pattern\": \"%s/%s*\"}]}", config.getRepository(), targetPath));
+            return artifactory.searches().artifactsByFileSpec(fileSpec).stream()
+                    .map((item -> String.format("%s/%s", item.getPath(), item.getName())))
+                    .collect(Collectors.toList());
+        }
+    }
+
+    public boolean isFile(String targetPath) throws IOException {
+        return !isFolder(targetPath);
     }
 
     private Artifactory buildArtifactory() {
