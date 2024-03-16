@@ -17,13 +17,14 @@ import java.io.Serializable;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Collections;
-import java.util.logging.Logger;
 import java.util.regex.Pattern;
 import jenkins.model.Jenkins;
 import net.sf.json.JSONObject;
 import org.apache.commons.lang3.StringUtils;
 import org.kohsuke.stapler.*;
 import org.kohsuke.stapler.interceptor.RequirePOST;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @Extension
 public class ArtifactoryGenericArtifactConfig extends AbstractDescribableImpl<ArtifactoryGenericArtifactConfig>
@@ -35,7 +36,7 @@ public class ArtifactoryGenericArtifactConfig extends AbstractDescribableImpl<Ar
             "^(http://|https://)[a-z0-9][a-z0-9-.]{0,}(?::[0-9]{1,5})?(/[0-9a-zA-Z_]*)*$";
     private static final Pattern endPointPattern = Pattern.compile(SERVER_URL_REGEXP, Pattern.CASE_INSENSITIVE);
 
-    public static final Logger LOGGER = Logger.getLogger(ArtifactoryGenericArtifactConfig.class.getName());
+    public static final Logger LOGGER = LoggerFactory.getLogger(ArtifactoryGenericArtifactConfig.class);
 
     private String storageCredentialId;
     private String serverUrl;
@@ -191,7 +192,7 @@ public class ArtifactoryGenericArtifactConfig extends AbstractDescribableImpl<Ar
                 LOGGER.info("Artifactory configuration validated");
 
             } catch (Exception e) {
-                LOGGER.warning(e.getMessage());
+                LOGGER.error("Unable to connect to Artifactory. Please check the server url and credentials", e);
                 return FormValidation.error(
                         "Unable to connect to Artifactory. Please check the server url and credentials : "
                                 + e.getMessage());
