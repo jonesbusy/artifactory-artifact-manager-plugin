@@ -19,10 +19,10 @@ services:
         resources:
             limits:
               cpus: "1"
-              memory: 2G
+              memory: 1500m
             reservations:
               cpus: "0.5"
-              memory: 1G
+              memory: 1024m
 
 volumes:
     artifactory:

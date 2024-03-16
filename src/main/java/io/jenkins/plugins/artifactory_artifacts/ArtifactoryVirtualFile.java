@@ -2,9 +2,11 @@ package io.jenkins.plugins.artifactory_artifacts;
 
 import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.model.Run;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.logging.Logger;
 import jenkins.util.VirtualFile;
 
@@ -13,19 +15,13 @@ public class ArtifactoryVirtualFile extends ArtifactoryAbstractVirtualFile {
     private static final long serialVersionUID = 1L;
     private static final Logger LOGGER = Logger.getLogger(ArtifactoryVirtualFile.class.getName());
 
-    private final String repository;
     private final String key;
 
     private final transient Run<?, ?> build;
 
-    public ArtifactoryVirtualFile(String repository, String key, Run<?, ?> build) {
-        this.repository = repository;
+    public ArtifactoryVirtualFile(String key, Run<?, ?> build) {
         this.key = key;
         this.build = build;
-    }
-
-    public String getRepository() {
-        return repository;
     }
 
     public String getKey() {
@@ -35,13 +31,18 @@ public class ArtifactoryVirtualFile extends ArtifactoryAbstractVirtualFile {
     @NonNull
     @Override
     public String getName() {
-        return "";
+        String localKey = stripTrailingSlash(key);
+        return localKey.replaceFirst(".+/", "");
     }
 
     @NonNull
     @Override
     public URI toURI() {
-        return URI.create("artifactory://" + repository + "/" + key);
+        try {
+            return new URI(Utils.getUrl(this.key));
+        } catch (URISyntaxException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     @Override
@@ -56,7 +57,7 @@ public class ArtifactoryVirtualFile extends ArtifactoryAbstractVirtualFile {
 
     @Override
     public boolean isFile() throws IOException {
-        return false;
+        return true;
     }
 
     @Override
@@ -73,7 +74,8 @@ public class ArtifactoryVirtualFile extends ArtifactoryAbstractVirtualFile {
     @NonNull
     @Override
     public VirtualFile child(@NonNull String name) {
-        return this;
+        String joinedKey = stripTrailingSlash(this.key) + "/" + name;
+        return new ArtifactoryVirtualFile(joinedKey, build);
     }
 
     @Override
@@ -88,11 +90,26 @@ public class ArtifactoryVirtualFile extends ArtifactoryAbstractVirtualFile {
 
     @Override
     public boolean canRead() throws IOException {
-        return false;
+        return true;
     }
 
     @Override
     public InputStream open() throws IOException {
-        return null;
+        if (isDirectory()) {
+            throw new FileNotFoundException("Cannot open it because it is a directory.");
+        }
+        if (!isFile()) {
+            throw new FileNotFoundException("Cannot open it because it is not a file.");
+        }
+        ArtifactoryClient client = new ArtifactoryClient();
+        return client.downloadArtifact(this.key);
+    }
+
+    private String stripTrailingSlash(String key) {
+        String localKey = key;
+        if (key.endsWith("/")) {
+            localKey = localKey.substring(0, localKey.length() - 1);
+        }
+        return localKey;
     }
 }

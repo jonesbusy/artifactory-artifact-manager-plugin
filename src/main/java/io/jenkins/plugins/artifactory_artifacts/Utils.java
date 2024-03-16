@@ -40,6 +40,17 @@ public final class Utils {
     }
 
     /**
+     * Get the URL of the artifact
+     * @param name the name of the artifact
+     * @return the URL of the artifact
+     */
+    public static String getUrl(String name) {
+        return String.format(
+                "%s/%s/%s",
+                getArtifactConfig().getServerUrl(), getArtifactConfig().getRepository(), name);
+    }
+
+    /**
      * Get the path with the prefix
      * @param prefix the prefix. Can be null or empty. Must end with a slash if not empty.
      * @param filePath the file path

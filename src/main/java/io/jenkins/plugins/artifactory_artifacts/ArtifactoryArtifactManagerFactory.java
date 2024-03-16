@@ -27,7 +27,7 @@ public class ArtifactoryArtifactManagerFactory extends ArtifactManagerFactory {
     @CheckForNull
     @Override
     public ArtifactManager managerFor(Run<?, ?> build) {
-        return null;
+        return new ArtifactoryArtifactManager(build, Utils.getArtifactConfig());
     }
 
     public ArtifactoryGenericArtifactConfig getConfig() {
