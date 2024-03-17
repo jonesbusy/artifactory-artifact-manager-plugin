@@ -1,10 +1,13 @@
 package io.jenkins.plugins.artifactory_artifacts;
 
 import edu.umd.cs.findbugs.annotations.NonNull;
+import hudson.Extension;
 import hudson.FilePath;
 import hudson.Launcher;
 import hudson.model.BuildListener;
+import hudson.model.Item;
 import hudson.model.Run;
+import hudson.model.listeners.ItemListener;
 import hudson.remoting.VirtualChannel;
 import java.io.File;
 import java.io.IOException;
@@ -62,7 +65,12 @@ public class ArtifactoryArtifactManager extends ArtifactManager {
         String virtualPath = getFilePath("");
         ArtifactoryClient client = new ArtifactoryClient();
         LOGGER.trace(String.format("Deleting %s...", virtualPath));
-        client.deleteArtifact(virtualPath);
+        try {
+            client.deleteArtifact(virtualPath);
+        } catch (Exception e) {
+            LOGGER.error(String.format("Failed to delete %s", virtualPath), e);
+            return false;
+        }
         LOGGER.trace(String.format("Deleted %s", virtualPath));
         return true;
     }
@@ -73,11 +81,7 @@ public class ArtifactoryArtifactManager extends ArtifactManager {
     }
 
     private String getFilePath(String path) {
-        return getFilePath(defaultKey, path);
-    }
-
-    private String getFilePath(String key, String path) {
-        return String.format("%s%s/%s", config.getPrefix(), key, path);
+        return Utils.getFilePath(defaultKey, path);
     }
 
     private static class UploadFile implements Serializable {
@@ -117,6 +121,29 @@ public class ArtifactoryArtifactManager extends ArtifactManager {
                 client.uploadArtifact(new File(f, file.getName()).toPath(), file.getUrl());
             }
             return null;
+        }
+    }
+
+    /**
+     * Item listener that listens to item deletion and location change events and updates the storage accordingly
+     */
+    @Extension
+    public static final class ArtifactoryItemListener extends ItemListener {
+
+        @Override
+        public void onDeleted(Item item) {
+            ArtifactoryClient client = new ArtifactoryClient();
+            String path = Utils.getFilePath(item.getFullName(), "");
+            LOGGER.info(String.format("Checking if %s must be deleted on Artifactory Storage", path));
+            try {
+                if (client.isFolder(path)) {
+                    LOGGER.debug(String.format("Deleting %s...", path));
+                    client.deleteArtifact(path);
+                    LOGGER.info(String.format("Deleted %s on Artifactory Storage", path));
+                }
+            } catch (IOException e) {
+                LOGGER.error(String.format("Failed to delete %s", path), e);
+            }
         }
     }
 }

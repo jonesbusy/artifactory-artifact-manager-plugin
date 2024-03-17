@@ -52,6 +52,16 @@ public final class Utils {
 
     /**
      * Get the path with the prefix
+     * @param key the key
+     * @param path the path
+     * @return the path with the prefix
+     */
+    public static String getFilePath(String key, String path) {
+        return String.format("%s%s/%s", getArtifactConfig().getPrefix(), key, path);
+    }
+
+    /**
+     * Get the path with the prefix
      * @param prefix the prefix. Can be null or empty. Must end with a slash if not empty.
      * @param filePath the file path
      * @return the path with the prefix

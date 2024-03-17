@@ -60,7 +60,12 @@ class ArtifactoryClient {
 
     public boolean isFolder(String targetPath) throws IOException {
         try (Artifactory artifactory = buildArtifactory()) {
-            return artifactory.repository(config.getRepository()).isFolder(targetPath);
+            try {
+                return artifactory.repository(config.getRepository()).isFolder(targetPath);
+            } catch (Exception e) {
+                LOGGER.debug(String.format("Failed to check if %s is a folder", targetPath));
+                return false;
+            }
         }
     }
 
