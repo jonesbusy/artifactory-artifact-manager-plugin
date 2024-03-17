@@ -1,8 +1,21 @@
 version: "3.9"
 services:
 
-  # Adminadmin123$
-  # cmVmdGtuOjAxOjE3NDIxMDA2MTY6dVc5Qm5pTG1CZElBMmVyRG9xZDd6VmJhTmVX
+  wiremock:
+    image: wiremock/wiremock:3.4.2
+    container_name: wiremock
+    restart: always
+    ports:
+      - "8181:8080"
+    deploy:
+        resources:
+            limits:
+              cpus: "0.5"
+              memory: 512m
+            reservations:
+              cpus: "0.5"
+              memory: 256m
+
   artifactory:
     image: releases-docker.jfrog.io/jfrog/artifactory-oss:latest
     container_name: artifactory
