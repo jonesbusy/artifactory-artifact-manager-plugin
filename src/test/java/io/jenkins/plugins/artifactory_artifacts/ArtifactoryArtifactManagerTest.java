@@ -8,6 +8,7 @@ import com.cloudbees.plugins.credentials.CredentialsProvider;
 import com.cloudbees.plugins.credentials.CredentialsScope;
 import com.cloudbees.plugins.credentials.domains.Domain;
 import com.cloudbees.plugins.credentials.impl.UsernamePasswordCredentialsImpl;
+import com.fasterxml.jackson.databind.ser.Serializers;
 import com.github.tomakehurst.wiremock.client.WireMock;
 import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
 import com.github.tomakehurst.wiremock.junit5.WireMockTest;
@@ -19,7 +20,7 @@ import org.jvnet.hudson.test.junit.jupiter.WithJenkins;
 
 @WithJenkins
 @WireMockTest(httpPort = 18081)
-public class ArtifactoryArtifactManagerTest {
+public class ArtifactoryArtifactManagerTest extends BaseTest {
 
     @Test
     public void shouldDoValidateArtifactoryConfig(JenkinsRule jenkinsRule, WireMockRuntimeInfo wmRuntimeInfo)
@@ -97,26 +98,5 @@ public class ArtifactoryArtifactManagerTest {
         assertThat(config.getPrefix(), is("jenkins/"));
     }
 
-    public static ArtifactoryGenericArtifactConfig configureConfig(
-            JenkinsRule jenkinsRule, WireMockRuntimeInfo wmRuntimeInfo, String prefix) throws Exception {
 
-        // Create generic config
-        ArtifactoryGenericArtifactConfig config = new ArtifactoryGenericArtifactConfig();
-        config.setPrefix(prefix);
-        config.setServerUrl("http://localhost:18081");
-        config.setRepository("my-generic-repo");
-        config.setStorageCredentialId("the-credentials-id");
-
-        // Add credentials to the store
-        UsernamePasswordCredentialsImpl credentials = new UsernamePasswordCredentialsImpl(
-                CredentialsScope.GLOBAL, "the-credentials-id", "sample", "sample", "sample");
-        CredentialsProvider.lookupStores(jenkinsRule.getInstance())
-                .iterator()
-                .next()
-                .addCredentials(Domain.global(), credentials);
-
-        ArtifactoryArtifactManagerFactory artifactManagerFactory = new ArtifactoryArtifactManagerFactory(config);
-        ArtifactManagerConfiguration.get().getArtifactManagerFactories().add(artifactManagerFactory);
-        return config;
-    }
 }
