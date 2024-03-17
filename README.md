@@ -49,6 +49,20 @@ The plugin works transparently with the default Artifact Manager.
 
 ![Global configuration](docs/artifactory4.png)
 
+## Configuration as Code
+
+```yaml
+unclassified:
+  artifactManager:
+    artifactManagerFactories:
+      - artifactory:
+          config:
+            prefix: "jenkins/"
+            repository: "my-generic-repo"
+            serverUrl: "http://localhost:7000"
+            storageCredentialId: "the-credentials-id"
+```
+
 ## LICENSE
 
 Licensed under MIT, see [LICENSE](LICENSE.md)
