@@ -24,7 +24,7 @@ public class ArtifactoryArtifactManagerTest extends BaseTest {
     @Test
     public void shouldDeleteArtifactWhenDeletingJob(JenkinsRule jenkinsRule, WireMockRuntimeInfo wmRuntimeInfo)
             throws Exception {
-        ArtifactoryGenericArtifactConfig config = configureConfig(jenkinsRule, wmRuntimeInfo, "/jenkins");
+        ArtifactoryGenericArtifactConfig config = configureConfig(jenkinsRule, wmRuntimeInfo, "");
 
         String pipelineName = "shouldDeleteArtifactWhenDeletingJob";
 
@@ -35,6 +35,29 @@ public class ArtifactoryArtifactManagerTest extends BaseTest {
 
         // Setup wiremock stubs
         setupWireMockStubs(pipelineName, wmRuntimeInfo, "", "artifact.txt");
+
+        // Query job folder
+        String folderPath = "/api/storage/my-generic-repo/" + pipelineName;
+        String jobFolderResponse = "{"
+                + "\"children\": [{\"folder\": true, \"uri\": \"/1\"}],"
+                + "\"created\": \"2024-03-17T13:20:19.836Z\","
+                + "\"createdBy\": \"admin\","
+                + "\"lastModified\": \"2024-03-17T13:20:19.836Z\","
+                + "\"lastUpdated\": \"2024-03-17T13:20:19.836Z\","
+                + "\"modifiedBy\": \"admin\","
+                + "\"path\": \"" + folderPath + "\","
+                + "\"repo\": \"my-generic-repo\","
+                + "\"uri\": \"http://localhost:18081/artifactory" + folderPath + "\""
+                + "}";
+        wmRuntimeInfo
+                .getWireMock()
+                .register(WireMock.get(WireMock.urlEqualTo(folderPath)).willReturn(WireMock.okJson(jobFolderResponse)));
+
+        // Delete the folder
+        wmRuntimeInfo
+                .getWireMock()
+                .register(WireMock.delete(WireMock.urlEqualTo("/my-generic-repo/" + pipelineName))
+                        .willReturn(WireMock.ok()));
 
         // Run job
         WorkflowJob workflowJob = jenkinsRule.createProject(WorkflowJob.class, pipelineName);
