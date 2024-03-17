@@ -51,6 +51,19 @@ public final class Utils {
     }
 
     /**
+     * Strip the trailing slash
+     * @param key the key
+     * @return the key without the trailing slash
+     */
+    public static String stripTrailingSlash(String key) {
+        String localKey = key;
+        if (key.endsWith("/")) {
+            localKey = localKey.substring(0, localKey.length() - 1);
+        }
+        return localKey;
+    }
+
+    /**
      * Get the path with the prefix
      * @param key the key
      * @param path the path

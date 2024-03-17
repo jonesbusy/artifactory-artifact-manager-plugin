@@ -37,7 +37,7 @@ public class ArtifactoryVirtualFile extends ArtifactoryAbstractVirtualFile {
     @NonNull
     @Override
     public String getName() {
-        String localKey = stripTrailingSlash(key);
+        String localKey = Utils.stripTrailingSlash(key);
         return localKey.replaceFirst(".+/", "");
     }
 
@@ -64,7 +64,7 @@ public class ArtifactoryVirtualFile extends ArtifactoryAbstractVirtualFile {
 
     @Override
     public boolean isDirectory() throws IOException {
-        String keyWithNoSlash = stripTrailingSlash(this.key);
+        String keyWithNoSlash = Utils.stripTrailingSlash(this.key);
         if (keyWithNoSlash.endsWith("/*view*")) {
             return false;
         }
@@ -88,14 +88,18 @@ public class ArtifactoryVirtualFile extends ArtifactoryAbstractVirtualFile {
     @NonNull
     @Override
     public VirtualFile[] list() throws IOException {
-        String prefix = stripTrailingSlash(this.key) + "/";
-        return listFilesFromPrefix(prefix).toArray(new VirtualFile[0]);
+        String prefix = Utils.stripTrailingSlash(this.key) + "/";
+        List<VirtualFile> files = listFilesFromPrefix(prefix);
+        if (files.isEmpty()) {
+            return new VirtualFile[0];
+        }
+        return files.toArray(new VirtualFile[0]);
     }
 
     @NonNull
     @Override
     public VirtualFile child(@NonNull String name) {
-        String joinedKey = stripTrailingSlash(this.key) + "/" + name;
+        String joinedKey = Utils.stripTrailingSlash(this.key) + "/" + name;
         return new ArtifactoryVirtualFile(joinedKey, build);
     }
 
@@ -127,26 +131,23 @@ public class ArtifactoryVirtualFile extends ArtifactoryAbstractVirtualFile {
         return client.downloadArtifact(this.key);
     }
 
+    /**
+     * List the files from a prefix
+     * @param prefix the prefix
+     * @return the list of files from the prefix
+     */
     private List<VirtualFile> listFilesFromPrefix(String prefix) {
         ArtifactoryClient client = new ArtifactoryClient();
         try {
             List<String> files = client.list(prefix);
             List<VirtualFile> virtualFiles = new ArrayList<>();
             for (String file : files) {
-                virtualFiles.add(new ArtifactoryVirtualFile(stripTrailingSlash(file), this.build));
+                virtualFiles.add(new ArtifactoryVirtualFile(Utils.stripTrailingSlash(file), this.build));
             }
             return virtualFiles;
         } catch (IOException e) {
             LOGGER.warn(String.format("Failed to list files from prefix %s", prefix), e);
             return Collections.emptyList();
         }
-    }
-
-    private String stripTrailingSlash(String key) {
-        String localKey = key;
-        if (key.endsWith("/")) {
-            localKey = localKey.substring(0, localKey.length() - 1);
-        }
-        return localKey;
     }
 }

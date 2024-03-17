@@ -7,10 +7,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.stream.Collectors;
-import org.jfrog.artifactory.client.Artifactory;
-import org.jfrog.artifactory.client.ArtifactoryClientBuilder;
-import org.jfrog.artifactory.client.DownloadableArtifact;
-import org.jfrog.artifactory.client.UploadableArtifact;
+import org.jfrog.artifactory.client.*;
 import org.jfrog.artifactory.client.model.File;
 import org.jfrog.filespecs.FileSpec;
 import org.slf4j.Logger;
@@ -32,6 +29,12 @@ class ArtifactoryClient {
         credentials = Utils.getCredentials(this.config);
     }
 
+    /**
+     * Upload an artifact to the repository
+     * @param file the file to upload
+     * @param targetPath the path to upload the file to
+     * @throws IOException if the file cannot be uploaded
+     */
     public void uploadArtifact(Path file, String targetPath) throws IOException {
         try (Artifactory artifactory = buildArtifactory()) {
             UploadableArtifact artifact =
@@ -44,12 +47,35 @@ class ArtifactoryClient {
         }
     }
 
+    /**
+     * Delete an artifact or path from the repository
+     * @param targetPath the path of the artifact to delete
+     */
     public void deleteArtifact(String targetPath) {
         try (Artifactory artifactory = buildArtifactory()) {
             artifactory.repository(config.getRepository()).delete(targetPath);
         }
     }
 
+    /**
+     * Move an artifact from one path to another. Require Artifactory PRO
+     * @param sourcePath the source path
+     * @param targetPath the target path
+     */
+    public void move(String sourcePath, String targetPath) {
+        try (Artifactory artifactory = buildArtifactory()) {
+            ItemHandle sourceItem =
+                    artifactory.repository(config.getRepository()).folder(sourcePath);
+            sourceItem.move(config.getRepository(), targetPath);
+        }
+    }
+
+    /**
+     * Download an artifact from the repository
+     * @param targetPath the path of the artifact to download
+     * @return the input stream of the artifact
+     * @throws IOException if the artifact cannot be downloaded
+     */
     public InputStream downloadArtifact(String targetPath) throws IOException {
         try (Artifactory artifactory = buildArtifactory()) {
             DownloadableArtifact artifact =
@@ -58,6 +84,12 @@ class ArtifactoryClient {
         }
     }
 
+    /**
+     * Check if a path is a folder
+     * @param targetPath the path to check
+     * @return true if the path is a folder, false otherwise
+     * @throws IOException if the path cannot be checked
+     */
     public boolean isFolder(String targetPath) throws IOException {
         try (Artifactory artifactory = buildArtifactory()) {
             try {
@@ -69,9 +101,16 @@ class ArtifactoryClient {
         }
     }
 
+    /**
+     * List the files in a folder
+     * @param targetPath the path to list
+     * @return the list of files in the folder
+     * @throws IOException if the files cannot be listed
+     */
     public List<String> list(String targetPath) throws IOException {
         if (!isFolder(targetPath)) {
-            throw new IllegalArgumentException("Target path is not a folder. Cannot list files");
+            LOGGER.debug(String.format("Target path %s is not a folder. Cannot list files", targetPath));
+            return List.of();
         }
         try (Artifactory artifactory = buildArtifactory()) {
             FileSpec fileSpec = FileSpec.fromString(
@@ -82,10 +121,22 @@ class ArtifactoryClient {
         }
     }
 
+    /**
+     * Check if a path is a file
+     * @param targetPath the path to check
+     * @return true if the path is a file, false otherwise
+     * @throws IOException if the path cannot be checked
+     */
     public boolean isFile(String targetPath) throws IOException {
         return !isFolder(targetPath);
     }
 
+    /**
+     * Get the last updated time of a path
+     * @param targetPath the path to check
+     * @return the last updated time of the path
+     * @throws IOException if the last updated time cannot be checked
+     */
     public long lastUpdated(String targetPath) throws IOException {
         LOGGER.trace(String.format("Getting last updated time for %s", targetPath));
         try (Artifactory artifactory = buildArtifactory()) {
@@ -98,6 +149,12 @@ class ArtifactoryClient {
         }
     }
 
+    /**
+     * Get the size of a path
+     * @param targetPath the path to check
+     * @return the size of the path
+     * @throws IOException if the size cannot be checked
+     */
     public long size(String targetPath) throws IOException {
         if (isFolder(targetPath)) {
             return 0;
@@ -112,11 +169,18 @@ class ArtifactoryClient {
         }
     }
 
+    /**
+     * Build the Artifactory client
+     * @return the Artifactory client
+     */
     private Artifactory buildArtifactory() {
         return ArtifactoryClientBuilder.create()
                 .setUrl(config.getServerUrl())
                 .setUsername(credentials.getUsername())
                 .setPassword(credentials.getPassword().getPlainText())
+                .addInterceptorLast((request, httpContext) -> {
+                    LOGGER.info(String.format("Sending Artifactory request to %s", request.getRequestLine()));
+                })
                 .build();
     }
 }

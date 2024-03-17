@@ -133,7 +133,7 @@ public class ArtifactoryArtifactManager extends ArtifactManager {
         @Override
         public void onDeleted(Item item) {
             ArtifactoryClient client = new ArtifactoryClient();
-            String path = Utils.getFilePath(item.getFullName(), "");
+            String path = Utils.stripTrailingSlash(Utils.getFilePath(item.getFullName(), ""));
             LOGGER.info(String.format("Checking if %s must be deleted on Artifactory Storage", path));
             try {
                 if (client.isFolder(path)) {
@@ -143,6 +143,25 @@ public class ArtifactoryArtifactManager extends ArtifactManager {
                 }
             } catch (IOException e) {
                 LOGGER.error(String.format("Failed to delete %s", path), e);
+            }
+        }
+
+        @Override
+        public void onLocationChanged(Item item, String oldFullName, String newFullName) {
+            ArtifactoryClient client = new ArtifactoryClient();
+            String sourcePath = Utils.stripTrailingSlash(Utils.getFilePath(oldFullName, ""));
+            String targetPath = Utils.stripTrailingSlash(Utils.getFilePath(newFullName, ""));
+            LOGGER.info(
+                    String.format("Checking if %s must be moved to %s on Artifactory Storage", sourcePath, targetPath));
+            try {
+                if (client.isFolder(sourcePath)) {
+                    LOGGER.debug(String.format("Moving %s...", sourcePath));
+                    client.move(sourcePath, targetPath);
+                    LOGGER.info(String.format("Moving %s on Artifactory Storage", targetPath));
+                }
+            } catch (IOException e) {
+                LOGGER.error(
+                        String.format("Failed to move %s to %s. Artifactory Pro is needed", sourcePath, targetPath));
             }
         }
     }
