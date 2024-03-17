@@ -7,11 +7,11 @@
   <img src="docs/artifactory_logo.png">
 </p>
 
+## Introduction
+
 Artifact Manager on Artifactory plugin is an Artifact Manager that allow you to store your artifacts into a generic repository on Artifactory.
 The use of this Artifactory repository as an Artifact storage is transparent to Jenkins and your jobs, it works like the default
 Artifact Manager.
-
-## Introduction
 
 This plugin is similar to [artifact-manager-s3](https://plugins.jenkins.io/artifact-manager-s3/) and 
 [azure-artifact-manager](https://plugins.jenkins.io/azure-artifact-manager/) but for JFrog Artifactory as backend.
@@ -62,6 +62,20 @@ unclassified:
             serverUrl: "http://localhost:7000"
             storageCredentialId: "the-credentials-id"
 ```
+
+## Usage
+
+### Pipeline
+
+```groovy
+archiveArtifacts artifacts: 'target/*.jar', allowEmptyArchive: true
+```
+
+### Freestyle
+
+For FreeStyle jobs, you can archive artifacts by adding a Post-build Actions of type Archive the artifacts, and this will use the Artifactory Artifact Manager plugin to store the artifacts into Artifactory.
+
+![](docs/freestyle_job.jpg)
 
 ## LICENSE
 
