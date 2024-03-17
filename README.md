@@ -3,9 +3,6 @@
 > [!NOTE]
 > This plugin is maintained by the Jenkins Community and not by JFrog.
 
-<p align="center">
-  <img src="docs/artifactory_logo.png">
-</p>
 
 ## Introduction
 
@@ -25,11 +22,9 @@ The plugin support both OSS and Pro versions of Artifactory, but Pro version is 
 
 - Not able to move artifact to another location when a job is renamed. Moving must be done manually from Artifactory UI (which is supported on OSS edition).
 
-### Not implemented yet
-
-- Stash/unstash
-- Performance optimization with local cache
-- Tests coverage
+<p align="center">
+  <img src="docs/artifactory_logo.png">
+</p>
 
 ## Configuration
 
