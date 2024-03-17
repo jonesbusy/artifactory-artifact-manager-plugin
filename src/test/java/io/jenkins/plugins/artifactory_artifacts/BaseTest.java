@@ -89,5 +89,4 @@ public class BaseTest {
         wireMock.register(
                 WireMock.post(WireMock.urlMatching("/api/search/aql")).willReturn(WireMock.okJson(aqlResponse)));
     }
-
 }

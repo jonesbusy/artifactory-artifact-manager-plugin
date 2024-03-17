@@ -9,7 +9,7 @@ import io.jenkins.plugins.casc.misc.junit.jupiter.WithJenkinsConfiguredWithCode;
 import org.junit.jupiter.api.Test;
 
 @WithJenkinsConfiguredWithCode
-public class ConfigurationAsCodeTest {
+public class ConfigurationAsCodeTest extends BaseTest {
 
     @Test
     @ConfiguredWithCode("configuration-as-code.yml")

@@ -1,19 +1,18 @@
 package io.jenkins.plugins.artifactory_artifacts;
 
-import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.CoreMatchers.startsWith;
+import static org.hamcrest.CoreMatchers.*;
 import static org.hamcrest.MatcherAssert.assertThat;
 
-import com.cloudbees.plugins.credentials.CredentialsProvider;
-import com.cloudbees.plugins.credentials.CredentialsScope;
-import com.cloudbees.plugins.credentials.domains.Domain;
-import com.cloudbees.plugins.credentials.impl.UsernamePasswordCredentialsImpl;
-import com.fasterxml.jackson.databind.ser.Serializers;
 import com.github.tomakehurst.wiremock.client.WireMock;
 import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
 import com.github.tomakehurst.wiremock.junit5.WireMockTest;
 import hudson.util.FormValidation;
-import jenkins.model.ArtifactManagerConfiguration;
+import java.nio.charset.StandardCharsets;
+import java.util.Objects;
+import org.apache.commons.io.IOUtils;
+import org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition;
+import org.jenkinsci.plugins.workflow.job.WorkflowJob;
+import org.jenkinsci.plugins.workflow.job.WorkflowRun;
 import org.junit.jupiter.api.Test;
 import org.jvnet.hudson.test.JenkinsRule;
 import org.jvnet.hudson.test.junit.jupiter.WithJenkins;
@@ -21,6 +20,34 @@ import org.jvnet.hudson.test.junit.jupiter.WithJenkins;
 @WithJenkins
 @WireMockTest(httpPort = 18081)
 public class ArtifactoryArtifactManagerTest extends BaseTest {
+
+    @Test
+    public void shouldDeleteArtifactWhenDeletingJob(JenkinsRule jenkinsRule, WireMockRuntimeInfo wmRuntimeInfo)
+            throws Exception {
+        ArtifactoryGenericArtifactConfig config = configureConfig(jenkinsRule, wmRuntimeInfo, "/jenkins");
+
+        String pipelineName = "shouldDeleteArtifactWhenDeletingJob";
+
+        // Create pipeline and run it
+        String pipeline = IOUtils.toString(
+                Objects.requireNonNull(PipelineTest.class.getResourceAsStream("/pipelines/archiveController.groovy")),
+                StandardCharsets.UTF_8);
+
+        // Setup wiremock stubs
+        setupWireMockStubs(pipelineName, wmRuntimeInfo, "", "artifact.txt");
+
+        // Run job
+        WorkflowJob workflowJob = jenkinsRule.createProject(WorkflowJob.class, pipelineName);
+        workflowJob.setDefinition(new CpsFlowDefinition(pipeline, true));
+        WorkflowRun run1 = Objects.requireNonNull(workflowJob.scheduleBuild2(0)).waitForStart();
+        jenkinsRule.waitForCompletion(run1);
+
+        // Job success
+        assertThat(run1.getResult(), equalTo(hudson.model.Result.SUCCESS));
+
+        // Delete job
+        workflowJob.delete();
+    }
 
     @Test
     public void shouldDoValidateArtifactoryConfig(JenkinsRule jenkinsRule, WireMockRuntimeInfo wmRuntimeInfo)
@@ -97,6 +124,4 @@ public class ArtifactoryArtifactManagerTest extends BaseTest {
         assertThat(config.getRepository(), is("my-generic-repo"));
         assertThat(config.getPrefix(), is("jenkins/"));
     }
-
-
 }

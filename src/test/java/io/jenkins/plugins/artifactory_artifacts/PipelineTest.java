@@ -4,7 +4,6 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.hasSize;
 
-import com.github.tomakehurst.wiremock.client.WireMock;
 import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
 import com.github.tomakehurst.wiremock.junit5.WireMockTest;
 import java.nio.charset.StandardCharsets;
@@ -26,7 +25,7 @@ public class PipelineTest extends BaseTest {
 
         final String pipelineName = "testPipelineWithPrefix";
 
-        ArtifactoryArtifactManagerTest.configureConfig(jenkinsRule, wmRuntimeInfo, "jenkins/");
+        configureConfig(jenkinsRule, wmRuntimeInfo, "jenkins/");
         String pipeline = IOUtils.toString(
                 Objects.requireNonNull(PipelineTest.class.getResourceAsStream("/pipelines/archiveController.groovy")),
                 StandardCharsets.UTF_8);
@@ -52,7 +51,7 @@ public class PipelineTest extends BaseTest {
 
         final String pipelineName = "testPipelineWithoutPrefix";
 
-        ArtifactoryArtifactManagerTest.configureConfig(jenkinsRule, wmRuntimeInfo, "");
+        configureConfig(jenkinsRule, wmRuntimeInfo, "");
         String pipeline = IOUtils.toString(
                 Objects.requireNonNull(PipelineTest.class.getResourceAsStream("/pipelines/archiveController.groovy")),
                 StandardCharsets.UTF_8);
@@ -72,5 +71,4 @@ public class PipelineTest extends BaseTest {
         // Check 1 artifact
         assertThat(run1.getArtifacts(), hasSize(1));
     }
-
 }
