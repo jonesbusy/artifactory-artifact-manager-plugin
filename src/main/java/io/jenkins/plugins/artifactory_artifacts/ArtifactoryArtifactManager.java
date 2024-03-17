@@ -1,12 +1,14 @@
 package io.jenkins.plugins.artifactory_artifacts;
 
 import edu.umd.cs.findbugs.annotations.NonNull;
+import hudson.EnvVars;
 import hudson.Extension;
 import hudson.FilePath;
 import hudson.Launcher;
 import hudson.model.BuildListener;
 import hudson.model.Item;
 import hudson.model.Run;
+import hudson.model.TaskListener;
 import hudson.model.listeners.ItemListener;
 import hudson.remoting.VirtualChannel;
 import java.io.File;
@@ -18,13 +20,14 @@ import java.util.Map;
 import jenkins.MasterToSlaveFileCallable;
 import jenkins.model.ArtifactManager;
 import jenkins.util.VirtualFile;
+import org.jenkinsci.plugins.workflow.flow.StashManager;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 @Restricted(NoExternalUse.class)
-public class ArtifactoryArtifactManager extends ArtifactManager {
+public class ArtifactoryArtifactManager extends ArtifactManager implements StashManager.StashAwareArtifactManager {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ArtifactoryArtifactManager.class);
     private transient Run<?, ?> build;
@@ -79,6 +82,50 @@ public class ArtifactoryArtifactManager extends ArtifactManager {
     public VirtualFile root() {
         return new ArtifactoryVirtualFile(getFilePath("artifacts"), build);
     }
+
+    @Override
+    public void stash(
+            @NonNull String name,
+            @NonNull FilePath workspace,
+            @NonNull Launcher launcher,
+            @NonNull EnvVars env,
+            @NonNull TaskListener listener,
+            String includes,
+            String excludes,
+            boolean useDefaultExcludes,
+            boolean allowEmpty)
+            throws IOException, InterruptedException {}
+
+    @Override
+    public void unstash(
+            @NonNull String name,
+            @NonNull FilePath workspace,
+            @NonNull Launcher launcher,
+            @NonNull EnvVars env,
+            @NonNull TaskListener listener)
+            throws IOException, InterruptedException {}
+
+    @Override
+    public void clearAllStashes(@NonNull TaskListener listener) throws IOException, InterruptedException {
+        String virtualPath = getFilePath("stashes");
+        ArtifactoryClient client = new ArtifactoryClient();
+        LOGGER.trace(String.format("Deleting %s...", virtualPath));
+        try {
+            if (client.isFolder(virtualPath)) {
+                client.deleteArtifact(virtualPath);
+                listener.getLogger().println("Deleted all stashes on Artifactory Storage");
+                LOGGER.debug(String.format("Deleted stash %s", virtualPath));
+            }
+        } catch (Exception e) {
+            listener.getLogger()
+                    .printf("Failed to delete stashes on Artifactory Storage. Details %s%n", e.getMessage());
+            LOGGER.error(String.format("Failed to delete stash on Artifactory at %s", virtualPath), e);
+        }
+    }
+
+    @Override
+    public void copyAllArtifactsAndStashes(@NonNull Run<?, ?> to, @NonNull TaskListener listener)
+            throws IOException, InterruptedException {}
 
     private String getFilePath(String path) {
         return Utils.getFilePath(defaultKey, path);
