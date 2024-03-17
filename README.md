@@ -3,10 +3,6 @@
 > [!NOTE]
 > This plugin is maintained by the Jenkins Community and not by JFrog.
 
-
-> [!IMPORTANT]
-> The plugin is at early development stage and will evolve in a near future.
-
 Artifact Manager on Artifactory plugin is an Artifact Manager that allow you to store your artifacts into a generic repository on Artifactory.
 The use of this Artifactory repository as an Artifact storage is transparent to Jenkins and your jobs, it works like the default
 Artifact Manager.
@@ -22,7 +18,8 @@ Artifact are stored in a [generic](https://jfrog.com/help/r/jfrog-artifactory-do
 
 The plugin support both OSS and Pro versions of Artifactory, but Pro version is recommended due to missing REST API on OSS edition. 
 
-Limitations of OSS edition.
+> [!IMPORTANT]
+> Limitations of OSS edition.
 
 - Not able to move artifact to another location when a job is renamed. Moving must be done manually from Artifactory UI (which is supported on OSS edition).
 
