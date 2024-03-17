@@ -1,19 +1,24 @@
 package io.jenkins.plugins.artifactory_artifacts;
 
 import edu.umd.cs.findbugs.annotations.NonNull;
-import hudson.EnvVars;
-import hudson.Extension;
-import hudson.FilePath;
-import hudson.Launcher;
+import hudson.*;
 import hudson.model.BuildListener;
 import hudson.model.Item;
 import hudson.model.Run;
 import hudson.model.TaskListener;
 import hudson.model.listeners.ItemListener;
 import hudson.remoting.VirtualChannel;
+import hudson.slaves.WorkspaceList;
+import hudson.util.DirScanner;
+import hudson.util.io.ArchiverFactory;
 import java.io.File;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.io.Serializable;
+import java.nio.file.Files;
+import java.nio.file.InvalidPathException;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -94,7 +99,15 @@ public class ArtifactoryArtifactManager extends ArtifactManager implements Stash
             String excludes,
             boolean useDefaultExcludes,
             boolean allowEmpty)
-            throws IOException, InterruptedException {}
+            throws IOException, InterruptedException {
+        String path = getFilePath("stashes/" + name + ".tgz");
+        FilePath tempDir = WorkspaceList.tempDir(workspace);
+        if (tempDir == null) {
+            throw new AbortException("Could not make temporary directory in " + workspace);
+        }
+        workspace.act(
+                new Stash(path, includes, excludes, useDefaultExcludes, allowEmpty, tempDir.getRemote(), listener));
+    }
 
     @Override
     public void unstash(
@@ -146,6 +159,65 @@ public class ArtifactoryArtifactManager extends ArtifactManager implements Stash
 
         public String getUrl() {
             return url;
+        }
+    }
+
+    private static final class Stash extends MasterToSlaveFileCallable<Void> {
+        private static final long serialVersionUID = 1L;
+        private final String path, includes, excludes;
+        private final boolean useDefaultExcludes;
+        private final boolean allowEmpty;
+        private final String tempDir;
+        private final TaskListener listener;
+
+        public Stash(
+                String path,
+                String includes,
+                String excludes,
+                boolean useDefaultExcludes,
+                boolean allowEmpty,
+                String tempDir,
+                TaskListener listener)
+                throws IOException {
+            this.path = path;
+            this.includes = includes;
+            this.excludes = excludes;
+            this.useDefaultExcludes = useDefaultExcludes;
+            this.allowEmpty = allowEmpty;
+            this.tempDir = tempDir;
+            this.listener = listener;
+        }
+
+        @Override
+        public Void invoke(File f, VirtualChannel channel) throws IOException, InterruptedException {
+            Path tempDirP = Paths.get(tempDir);
+            Files.createDirectories(tempDirP);
+            Path tmp = Files.createTempFile(tempDirP, "stash", ".tgz");
+            try {
+                int count;
+                try (OutputStream os = Files.newOutputStream(tmp)) {
+                    count = new FilePath(f)
+                            .archive(
+                                    ArchiverFactory.TARGZ,
+                                    os,
+                                    new DirScanner.Glob(
+                                            Util.fixEmpty(includes) == null ? "**" : includes,
+                                            excludes,
+                                            useDefaultExcludes));
+                } catch (InvalidPathException e) {
+                    throw new IOException(e);
+                }
+                if (count == 0 && !allowEmpty) {
+                    throw new AbortException("No files included in stash");
+                }
+                ArtifactoryClient client = new ArtifactoryClient();
+                client.uploadArtifact(tmp, path);
+                listener.getLogger().printf("Stashed %d file(s) to %s%n", count, path);
+                return null;
+            } finally {
+                listener.getLogger().flush();
+                Files.delete(tmp);
+            }
         }
     }
 
