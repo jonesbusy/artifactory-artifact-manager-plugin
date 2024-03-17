@@ -73,6 +73,57 @@ public class ArtifactoryArtifactManagerTest extends BaseTest {
     }
 
     @Test
+    public void shouldDeleteArtifactWhenDeletingBuild(JenkinsRule jenkinsRule, WireMockRuntimeInfo wmRuntimeInfo)
+            throws Exception {
+        ArtifactoryGenericArtifactConfig config = configureConfig(jenkinsRule, wmRuntimeInfo, "");
+
+        String pipelineName = "shouldDeleteArtifactWhenDeletingBuild";
+
+        // Create pipeline and run it
+        String pipeline = IOUtils.toString(
+                Objects.requireNonNull(PipelineTest.class.getResourceAsStream("/pipelines/archiveController.groovy")),
+                StandardCharsets.UTF_8);
+
+        // Setup wiremock stubs
+        setupWireMockStubs(pipelineName, wmRuntimeInfo, "", "artifact.txt");
+
+        // Query build folder
+        String folderPath = "/api/storage/my-generic-repo/" + pipelineName + "/1";
+        String jobFolderResponse = "{"
+                + "\"children\": [{\"folder\": true, \"uri\": \"/artifacts\"}],"
+                + "\"created\": \"2024-03-17T13:20:19.836Z\","
+                + "\"createdBy\": \"admin\","
+                + "\"lastModified\": \"2024-03-17T13:20:19.836Z\","
+                + "\"lastUpdated\": \"2024-03-17T13:20:19.836Z\","
+                + "\"modifiedBy\": \"admin\","
+                + "\"path\": \"" + folderPath + "\","
+                + "\"repo\": \"my-generic-repo\","
+                + "\"uri\": \"http://localhost:18081/artifactory" + folderPath + "\""
+                + "}";
+        wmRuntimeInfo
+                .getWireMock()
+                .register(WireMock.get(WireMock.urlEqualTo(folderPath)).willReturn(WireMock.okJson(jobFolderResponse)));
+
+        // Delete the build folder
+        wmRuntimeInfo
+                .getWireMock()
+                .register(WireMock.delete(WireMock.urlEqualTo("/my-generic-repo/" + pipelineName + "/1/"))
+                        .willReturn(WireMock.ok()));
+
+        // Run job
+        WorkflowJob workflowJob = jenkinsRule.createProject(WorkflowJob.class, pipelineName);
+        workflowJob.setDefinition(new CpsFlowDefinition(pipeline, true));
+        WorkflowRun run1 = Objects.requireNonNull(workflowJob.scheduleBuild2(0)).waitForStart();
+        jenkinsRule.waitForCompletion(run1);
+
+        // Job success
+        assertThat(run1.getResult(), equalTo(hudson.model.Result.SUCCESS));
+
+        // Delete job
+        workflowJob.getLastBuild().delete();
+    }
+
+    @Test
     public void shouldDoValidateArtifactoryConfig(JenkinsRule jenkinsRule, WireMockRuntimeInfo wmRuntimeInfo)
             throws Exception {
         ArtifactoryGenericArtifactConfig config = configureConfig(jenkinsRule, wmRuntimeInfo, "/jenkins");
