@@ -11,10 +11,7 @@ import hudson.remoting.VirtualChannel;
 import hudson.slaves.WorkspaceList;
 import hudson.util.DirScanner;
 import hudson.util.io.ArchiverFactory;
-import java.io.File;
-import java.io.IOException;
-import java.io.OutputStream;
-import java.io.Serializable;
+import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
@@ -116,7 +113,14 @@ public class ArtifactoryArtifactManager extends ArtifactManager implements Stash
             @NonNull Launcher launcher,
             @NonNull EnvVars env,
             @NonNull TaskListener listener)
-            throws IOException, InterruptedException {}
+            throws IOException, InterruptedException {
+        String path = getFilePath("stashes/" + name + ".tgz");
+        FilePath tempDir = WorkspaceList.tempDir(workspace);
+        if (tempDir == null) {
+            throw new AbortException("Could not make temporary directory in " + workspace);
+        }
+        workspace.act(new Unstash(path, listener));
+    }
 
     @Override
     public void clearAllStashes(@NonNull TaskListener listener) throws IOException, InterruptedException {
@@ -162,6 +166,9 @@ public class ArtifactoryArtifactManager extends ArtifactManager implements Stash
         }
     }
 
+    /**
+     * Master to slave callable that stashes files to Artifactory storage.
+     */
     private static final class Stash extends MasterToSlaveFileCallable<Void> {
         private static final long serialVersionUID = 1L;
         private final String path, includes, excludes;
@@ -218,6 +225,31 @@ public class ArtifactoryArtifactManager extends ArtifactManager implements Stash
                 listener.getLogger().flush();
                 Files.delete(tmp);
             }
+        }
+    }
+
+    /**
+     * Master to slave callable that unstashes files from Artifactory storage.
+     */
+    private static final class Unstash extends MasterToSlaveFileCallable<Void> {
+        private static final long serialVersionUID = 1L;
+        private final String path;
+        private final TaskListener listener;
+
+        public Unstash(String path, TaskListener listener) throws IOException {
+            this.path = path;
+            this.listener = listener;
+        }
+
+        @Override
+        public Void invoke(File f, VirtualChannel channel) throws IOException, InterruptedException {
+            ArtifactoryClient client = new ArtifactoryClient();
+            try (InputStream is = client.downloadArtifact(path)) {
+                new FilePath(f).untarFrom(is, FilePath.TarCompression.GZIP);
+            } finally {
+                listener.getLogger().flush();
+            }
+            return null;
         }
     }
 
