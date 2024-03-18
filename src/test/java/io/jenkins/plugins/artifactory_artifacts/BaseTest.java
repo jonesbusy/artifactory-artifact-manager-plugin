@@ -17,7 +17,7 @@ public class BaseTest {
         // Create generic config
         ArtifactoryGenericArtifactConfig config = new ArtifactoryGenericArtifactConfig();
         config.setPrefix(prefix);
-        config.setServerUrl("http://localhost:18081");
+        config.setServerUrl("http://localhost:" + wmRuntimeInfo.getHttpPort());
         config.setRepository("my-generic-repo");
         config.setStorageCredentialId("the-credentials-id");
 
@@ -60,7 +60,7 @@ public class BaseTest {
                 + "\"modifiedBy\": \"admin\","
                 + "\"path\": \"" + basePath + "\","
                 + "\"repo\": \"my-generic-repo\","
-                + "\"uri\": \"http://localhost:18081/artifactory" + basePath + "\""
+                + "\"uri\": \"http://localhost:" + wmRuntimeInfo.getHttpPort() + "/artifactory" + basePath + "\""
                 + "}";
 
         // JSON response for single artifact
@@ -72,7 +72,8 @@ public class BaseTest {
                 + "\"modifiedBy\": \"admin\","
                 + "\"path\": \"" + basePath + "/" + artifact + "\","
                 + "\"repo\": \"my-generic-repo\","
-                + "\"uri\": \"http://localhost:18081/artifactory" + basePath + "/" + artifact + "\""
+                + "\"uri\": \"http://localhost:" + wmRuntimeInfo.getHttpPort() + "/artifactory" + basePath + "/"
+                + artifact + "\""
                 + "}";
 
         // AQL response

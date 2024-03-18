@@ -10,13 +10,15 @@ import org.jvnet.hudson.test.JenkinsRule;
 import org.jvnet.hudson.test.junit.jupiter.WithJenkins;
 
 @WithJenkins
-@WireMockTest(httpPort = 18081)
+@WireMockTest
 public class UtilsTest extends BaseTest {
 
     @Test
     public void shouldGetUrl(JenkinsRule jenkinsRule, WireMockRuntimeInfo wmRuntimeInfo) throws Exception {
         configureConfig(jenkinsRule, wmRuntimeInfo, "jenkins/");
-        assertThat(Utils.getUrl("artifact.txt"), is("http://localhost:18081/my-generic-repo/artifact.txt"));
+        assertThat(
+                Utils.getUrl("artifact.txt"),
+                is("http://localhost:" + wmRuntimeInfo.getHttpPort() + "/my-generic-repo/artifact.txt"));
     }
 
     @Test

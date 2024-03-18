@@ -1,5 +1,13 @@
 # Artifact Manager on Artifactory Jenkins plugin
 
+![Build](https://ci.jenkins.io/job/Plugins/job/artifactory-artifact-manager-plugin/job/main/badge/icon)
+[![Coverage](https://ci.jenkins.io/job/Plugins/job/artifactory-artifact-manager-plugin/job/main/badge/icon?status=${instructionCoverage}&subject=coverage&color=${colorInstructionCoverage})](https://ci.jenkins.io/job/Plugins/job/artifactory-artifact-manager-plugin/job/main)
+[![LOC](https://ci.jenkins.io/job/Plugins/job/artifactory-artifact-manager-plugin/job/main/badge/icon?job=test&status=${lineOfCode}&subject=line%20of%20code&color=blue)](https://ci.jenkins.io/job/Plugins/job/artifactory-artifact-manager-plugin/job/main)
+![Contributors](https://img.shields.io/github/contributors/jenkinsci/artifactory-artifact-manager-plugin.svg?color=blue)
+[![GitHub release](https://img.shields.io/github/release/jenkinsci/artifactory-artifact-manager-plugin.svg?label=changelog)](https://github.com/jenkinsci/artifactory-artifact-manager-plugin/releases/latest)
+[![Jenkins Plugin Installs](https://img.shields.io/jenkins/plugin/i/artifactory-artifact-manager.svg?color=blue)](https://plugins.jenkins.io/artifactory-artifact-manager)
+[![GitHub license](https://img.shields.io/github/license/jenkinsci/artifactory-artifact-manager-plugin)](https://github.com/jenkinsci/artifactory-artifact-manager-plugin/blob/main/LICENSE.md)
+
 > [!NOTE]
 > This plugin is maintained by the Jenkins Community and not by JFrog.
 
