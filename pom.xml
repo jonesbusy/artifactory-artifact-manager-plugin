@@ -8,7 +8,7 @@
     <relativePath />
   </parent>
   <groupId>io.jenkins.plugins</groupId>
-  <artifactId>artifact-manager-artifactory</artifactId>
+  <artifactId>artifactory-artifact-manager</artifactId>
   <version>${revision}${changelist}</version>
   <packaging>hpi</packaging>
   <name>Artifact Manager Artifactory Plugin</name>
