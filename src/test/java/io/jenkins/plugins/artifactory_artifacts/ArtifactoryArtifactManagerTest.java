@@ -18,7 +18,7 @@ import org.jvnet.hudson.test.JenkinsRule;
 import org.jvnet.hudson.test.junit.jupiter.WithJenkins;
 
 @WithJenkins
-@WireMockTest(httpPort = 18081)
+@WireMockTest
 public class ArtifactoryArtifactManagerTest extends BaseTest {
 
     @Test
@@ -47,7 +47,7 @@ public class ArtifactoryArtifactManagerTest extends BaseTest {
                 + "\"modifiedBy\": \"admin\","
                 + "\"path\": \"" + folderPath + "\","
                 + "\"repo\": \"my-generic-repo\","
-                + "\"uri\": \"http://localhost:18081/artifactory" + folderPath + "\""
+                + "\"uri\": \"http://localhost:" + wmRuntimeInfo.getHttpPort() + "/artifactory" + folderPath + "\""
                 + "}";
         wmRuntimeInfo
                 .getWireMock()
@@ -98,7 +98,7 @@ public class ArtifactoryArtifactManagerTest extends BaseTest {
                 + "\"modifiedBy\": \"admin\","
                 + "\"path\": \"" + folderPath + "\","
                 + "\"repo\": \"my-generic-repo\","
-                + "\"uri\": \"http://localhost:18081/artifactory" + folderPath + "\""
+                + "\"uri\": \"http://localhost:" + wmRuntimeInfo.getHttpPort() + "/artifactory" + folderPath + "\""
                 + "}";
         wmRuntimeInfo
                 .getWireMock()
@@ -194,7 +194,7 @@ public class ArtifactoryArtifactManagerTest extends BaseTest {
 
         // Assert config
         assertThat(config.getStorageCredentialId(), is("the-credentials-id"));
-        assertThat(config.getServerUrl(), is("http://localhost:18081"));
+        assertThat(config.getServerUrl(), is("http://localhost:" + wmRuntimeInfo.getHttpPort()));
         assertThat(config.getRepository(), is("my-generic-repo"));
         assertThat(config.getPrefix(), is("jenkins/"));
     }

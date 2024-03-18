@@ -17,7 +17,7 @@ import org.jvnet.hudson.test.JenkinsRule;
 import org.jvnet.hudson.test.junit.jupiter.WithJenkins;
 
 @WithJenkins
-@WireMockTest(httpPort = 18081)
+@WireMockTest
 public class PipelineTest extends BaseTest {
 
     @Test
