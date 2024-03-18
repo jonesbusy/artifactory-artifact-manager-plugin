@@ -9,7 +9,7 @@
   </parent>
   <groupId>io.jenkins.plugins</groupId>
   <artifactId>artifactory-artifact-manager</artifactId>
-  <version>${revision}${changelist}</version>
+  <version>${changelist}</version>
   <packaging>hpi</packaging>
   <name>Artifact Manager Artifactory Plugin</name>
   <url>https://github.com/jenkinsci/${project.artifactId}-plugin</url>
