@@ -71,6 +71,19 @@ class ArtifactoryClient {
     }
 
     /**
+     * Copy an artifact from one path to another. Require Artifactory PRO
+     * @param sourcePath the source path
+     * @param targetPath the target path
+     */
+    public void copy(String sourcePath, String targetPath) {
+        try (Artifactory artifactory = buildArtifactory()) {
+            ItemHandle sourceItem =
+                    artifactory.repository(config.getRepository()).folder(sourcePath);
+            sourceItem.copy(config.getRepository(), targetPath);
+        }
+    }
+
+    /**
      * Download an artifact from the repository
      * @param targetPath the path of the artifact to download
      * @return the input stream of the artifact

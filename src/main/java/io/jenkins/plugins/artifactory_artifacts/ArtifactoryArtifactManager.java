@@ -142,7 +142,31 @@ public class ArtifactoryArtifactManager extends ArtifactManager implements Stash
 
     @Override
     public void copyAllArtifactsAndStashes(@NonNull Run<?, ?> to, @NonNull TaskListener listener)
-            throws IOException, InterruptedException {}
+            throws IOException, InterruptedException {
+        LOGGER.info(String.format("Copy all artifacts and stash to %s...", to));
+        ArtifactManager artifactManager = to.pickArtifactManager();
+        if (!(artifactManager instanceof ArtifactoryArtifactManager)) {
+            throw new AbortException(
+                    String.format("Cannot copy artifacts and stashes to %s using %s", to, artifactManager.getClass()));
+        }
+        ArtifactoryArtifactManager artifactoryArtifactManager = (ArtifactoryArtifactManager) artifactManager;
+        try {
+            listener.getLogger().println(String.format("Copy {0} artifacts and {1} stashes from {2} to {3}"));
+            String stashedPath = getFilePath("stashes");
+            String artifactPath = getFilePath("artifacts");
+            String toStashedPath = artifactoryArtifactManager.getFilePath("stashes");
+            String toArtifactPath = artifactoryArtifactManager.getFilePath("artifacts");
+            LOGGER.info(String.format("Copying artifacts from %s to %s", artifactPath, toArtifactPath));
+            LOGGER.info(String.format("Copying stashes from %s to %s", stashedPath, toStashedPath));
+            ArtifactoryClient client = new ArtifactoryClient();
+            client.copy(stashedPath, toStashedPath);
+            client.copy(artifactPath, toArtifactPath);
+        } catch (Exception e) {
+            listener.getLogger()
+                    .printf("Failed to copy artifact and stashes on Artifactory Storage. Details %s%n", e.getMessage());
+            throw new IOException(e);
+        }
+    }
 
     private String getFilePath(String path) {
         return Utils.getFilePath(defaultKey, path);
@@ -309,6 +333,10 @@ public class ArtifactoryArtifactManager extends ArtifactManager implements Stash
                     LOGGER.debug(String.format("Moving %s...", sourcePath));
                     client.move(sourcePath, targetPath);
                     LOGGER.info(String.format("Moving %s on Artifactory Storage", targetPath));
+
+                    // TODO: We move all artifact but previous build artifacts still reference old name
+                    // We should update the references to the new name ?
+
                 }
             } catch (IOException e) {
                 LOGGER.error(
