@@ -21,6 +21,7 @@ public class ArtifactoryVirtualFile extends ArtifactoryAbstractVirtualFile {
     private static final long serialVersionUID = 1L;
     private static final Logger LOGGER = LoggerFactory.getLogger(ArtifactoryVirtualFile.class);
 
+    @SuppressWarnings("lgtm[jenkins/plaintext-storage]")
     private final String key;
 
     private final transient Run<?, ?> build;

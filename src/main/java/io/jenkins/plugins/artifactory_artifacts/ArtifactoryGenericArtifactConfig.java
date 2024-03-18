@@ -113,6 +113,7 @@ public class ArtifactoryGenericArtifactConfig extends AbstractDescribableImpl<Ar
             return super.configure(req, json);
         }
 
+        @SuppressWarnings("lgtm[jenkins/csrf]")
         public ListBoxModel doFillStorageCredentialIdItems(@AncestorInPath Item item) {
             StandardListBoxModel result = new StandardListBoxModel();
             if (item == null) {
@@ -134,7 +135,9 @@ public class ArtifactoryGenericArtifactConfig extends AbstractDescribableImpl<Ar
                     .includeCurrentValue(get().getStorageCredentialId());
         }
 
+        @SuppressWarnings("lgtm[jenkins/csrf]")
         public FormValidation doCheckPrefix(@QueryParameter String prefix) {
+            Jenkins.get().checkPermission(Jenkins.ADMINISTER);
             FormValidation ret;
             if (StringUtils.isBlank(prefix)) {
                 ret = FormValidation.ok("Artifacts will be stored in the root folder of the Artifactory Repository.");
@@ -146,7 +149,9 @@ public class ArtifactoryGenericArtifactConfig extends AbstractDescribableImpl<Ar
             return ret;
         }
 
+        @SuppressWarnings("lgtm[jenkins/csrf]")
         public FormValidation doCheckRepository(@QueryParameter String repository) {
+            Jenkins.get().checkPermission(Jenkins.ADMINISTER);
             FormValidation ret = FormValidation.ok();
             if (StringUtils.isBlank(repository)) {
                 ret = FormValidation.error("Repository cannot be blank");
@@ -155,7 +160,9 @@ public class ArtifactoryGenericArtifactConfig extends AbstractDescribableImpl<Ar
             return ret;
         }
 
+        @SuppressWarnings("lgtm[jenkins/csrf]")
         public FormValidation doCheckServerUrl(@QueryParameter String serverUrl) {
+            Jenkins.get().checkPermission(Jenkins.ADMINISTER);
             FormValidation ret = FormValidation.ok();
             if (StringUtils.isBlank(serverUrl)) {
                 ret = FormValidation.error("Server url cannot be blank");
