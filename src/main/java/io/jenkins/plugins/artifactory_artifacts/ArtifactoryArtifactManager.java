@@ -62,13 +62,13 @@ public class ArtifactoryArtifactManager extends ArtifactManager implements Stash
             files.add(new UploadFile(entry.getKey(), filePath));
         }
 
-        workspace.act(new UploadToArtifactoryStorage(files));
+        workspace.act(new UploadToArtifactoryStorage(buildArtifactoryClient(), files));
     }
 
     @Override
     public boolean delete() throws IOException, InterruptedException {
         String virtualPath = getFilePath("");
-        ArtifactoryClient client = new ArtifactoryClient();
+        ArtifactoryClient client = buildArtifactoryClient();
         LOGGER.trace(String.format("Deleting %s...", virtualPath));
         try {
             client.deleteArtifact(virtualPath);
@@ -102,8 +102,15 @@ public class ArtifactoryArtifactManager extends ArtifactManager implements Stash
         if (tempDir == null) {
             throw new AbortException("Could not make temporary directory in " + workspace);
         }
-        workspace.act(
-                new Stash(path, includes, excludes, useDefaultExcludes, allowEmpty, tempDir.getRemote(), listener));
+        workspace.act(new Stash(
+                buildArtifactoryClient(),
+                path,
+                includes,
+                excludes,
+                useDefaultExcludes,
+                allowEmpty,
+                tempDir.getRemote(),
+                listener));
     }
 
     @Override
@@ -119,13 +126,13 @@ public class ArtifactoryArtifactManager extends ArtifactManager implements Stash
         if (tempDir == null) {
             throw new AbortException("Could not make temporary directory in " + workspace);
         }
-        workspace.act(new Unstash(path, listener));
+        workspace.act(new Unstash(buildArtifactoryClient(), path, listener));
     }
 
     @Override
     public void clearAllStashes(@NonNull TaskListener listener) throws IOException, InterruptedException {
         String virtualPath = getFilePath("stashes");
-        ArtifactoryClient client = new ArtifactoryClient();
+        ArtifactoryClient client = buildArtifactoryClient();
         LOGGER.trace(String.format("Deleting %s...", virtualPath));
         try {
             if (client.isFolder(virtualPath)) {
@@ -143,7 +150,7 @@ public class ArtifactoryArtifactManager extends ArtifactManager implements Stash
     @Override
     public void copyAllArtifactsAndStashes(@NonNull Run<?, ?> to, @NonNull TaskListener listener)
             throws IOException, InterruptedException {
-        LOGGER.info(String.format("Copy all artifacts and stash to %s...", to));
+        LOGGER.debug(String.format("Copy all artifacts and stash to %s...", to));
         ArtifactManager artifactManager = to.pickArtifactManager();
         if (!(artifactManager instanceof ArtifactoryArtifactManager)) {
             throw new AbortException(
@@ -156,9 +163,9 @@ public class ArtifactoryArtifactManager extends ArtifactManager implements Stash
             String artifactPath = getFilePath("artifacts");
             String toStashedPath = artifactoryArtifactManager.getFilePath("stashes");
             String toArtifactPath = artifactoryArtifactManager.getFilePath("artifacts");
-            LOGGER.info(String.format("Copying artifacts from %s to %s", artifactPath, toArtifactPath));
-            LOGGER.info(String.format("Copying stashes from %s to %s", stashedPath, toStashedPath));
-            ArtifactoryClient client = new ArtifactoryClient();
+            LOGGER.debug(String.format("Copying artifacts from %s to %s", artifactPath, toArtifactPath));
+            LOGGER.debug(String.format("Copying stashes from %s to %s", stashedPath, toStashedPath));
+            ArtifactoryClient client = buildArtifactoryClient();
             client.copy(stashedPath, toStashedPath);
             client.copy(artifactPath, toArtifactPath);
         } catch (Exception e) {
@@ -170,6 +177,10 @@ public class ArtifactoryArtifactManager extends ArtifactManager implements Stash
 
     private String getFilePath(String path) {
         return Utils.getFilePath(defaultKey, path);
+    }
+
+    private ArtifactoryClient buildArtifactoryClient() {
+        return new ArtifactoryClient(this.config.getServerUrl(), this.config.getRepository(), Utils.getCredentials());
     }
 
     private static class UploadFile implements Serializable {
@@ -195,6 +206,7 @@ public class ArtifactoryArtifactManager extends ArtifactManager implements Stash
      */
     private static final class Stash extends MasterToSlaveFileCallable<Void> {
         private static final long serialVersionUID = 1L;
+        private final ArtifactoryClient client;
         private final String path, includes, excludes;
         private final boolean useDefaultExcludes;
         private final boolean allowEmpty;
@@ -202,6 +214,7 @@ public class ArtifactoryArtifactManager extends ArtifactManager implements Stash
         private final TaskListener listener;
 
         public Stash(
+                ArtifactoryClient client,
                 String path,
                 String includes,
                 String excludes,
@@ -210,6 +223,7 @@ public class ArtifactoryArtifactManager extends ArtifactManager implements Stash
                 String tempDir,
                 TaskListener listener)
                 throws IOException {
+            this.client = client;
             this.path = path;
             this.includes = includes;
             this.excludes = excludes;
@@ -241,7 +255,6 @@ public class ArtifactoryArtifactManager extends ArtifactManager implements Stash
                 if (count == 0 && !allowEmpty) {
                     throw new AbortException("No files included in stash");
                 }
-                ArtifactoryClient client = new ArtifactoryClient();
                 client.uploadArtifact(tmp, path);
                 listener.getLogger().printf("Stashed %d file(s) to %s%n", count, path);
                 return null;
@@ -257,17 +270,18 @@ public class ArtifactoryArtifactManager extends ArtifactManager implements Stash
      */
     private static final class Unstash extends MasterToSlaveFileCallable<Void> {
         private static final long serialVersionUID = 1L;
+        private ArtifactoryClient client;
         private final String path;
         private final TaskListener listener;
 
-        public Unstash(String path, TaskListener listener) throws IOException {
+        public Unstash(ArtifactoryClient client, String path, TaskListener listener) throws IOException {
+            this.client = client;
             this.path = path;
             this.listener = listener;
         }
 
         @Override
         public Void invoke(File f, VirtualChannel channel) throws IOException, InterruptedException {
-            ArtifactoryClient client = new ArtifactoryClient();
             try (InputStream is = client.downloadArtifact(path)) {
                 new FilePath(f).untarFrom(is, FilePath.TarCompression.GZIP);
             } finally {
@@ -283,14 +297,15 @@ public class ArtifactoryArtifactManager extends ArtifactManager implements Stash
     private static class UploadToArtifactoryStorage extends MasterToSlaveFileCallable<Void> {
 
         private final List<UploadFile> files;
+        private final ArtifactoryClient client;
 
-        public UploadToArtifactoryStorage(List<UploadFile> files) {
+        public UploadToArtifactoryStorage(ArtifactoryClient client, List<UploadFile> files) {
+            this.client = client;
             this.files = files;
         }
 
         @Override
         public Void invoke(File f, VirtualChannel channel) throws IOException, InterruptedException {
-            ArtifactoryClient client = new ArtifactoryClient();
             for (UploadFile file : files) {
                 LOGGER.debug(String.format("Uploading %s to %s", file.getName(), file.getUrl()));
                 client.uploadArtifact(new File(f, file.getName()).toPath(), file.getUrl());
@@ -307,14 +322,16 @@ public class ArtifactoryArtifactManager extends ArtifactManager implements Stash
 
         @Override
         public void onDeleted(Item item) {
-            ArtifactoryClient client = new ArtifactoryClient();
+            ArtifactoryGenericArtifactConfig config = Utils.getArtifactConfig();
+            ArtifactoryClient client =
+                    new ArtifactoryClient(config.getServerUrl(), config.getRepository(), Utils.getCredentials());
             String path = Utils.stripTrailingSlash(Utils.getFilePath(item.getFullName(), ""));
-            LOGGER.info(String.format("Checking if %s must be deleted on Artifactory Storage", path));
+            LOGGER.debug(String.format("Checking if %s must be deleted on Artifactory Storage", path));
             try {
                 if (client.isFolder(path)) {
                     LOGGER.debug(String.format("Deleting %s...", path));
                     client.deleteArtifact(path);
-                    LOGGER.info(String.format("Deleted %s on Artifactory Storage", path));
+                    LOGGER.debug(String.format("Deleted %s on Artifactory Storage", path));
                 }
             } catch (IOException e) {
                 LOGGER.error(String.format("Failed to delete %s", path), e);
@@ -323,16 +340,18 @@ public class ArtifactoryArtifactManager extends ArtifactManager implements Stash
 
         @Override
         public void onLocationChanged(Item item, String oldFullName, String newFullName) {
-            ArtifactoryClient client = new ArtifactoryClient();
+            ArtifactoryGenericArtifactConfig config = Utils.getArtifactConfig();
+            ArtifactoryClient client =
+                    new ArtifactoryClient(config.getServerUrl(), config.getRepository(), Utils.getCredentials());
             String sourcePath = Utils.stripTrailingSlash(Utils.getFilePath(oldFullName, ""));
             String targetPath = Utils.stripTrailingSlash(Utils.getFilePath(newFullName, ""));
-            LOGGER.info(
+            LOGGER.debug(
                     String.format("Checking if %s must be moved to %s on Artifactory Storage", sourcePath, targetPath));
             try {
                 if (client.isFolder(sourcePath)) {
                     LOGGER.debug(String.format("Moving %s...", sourcePath));
                     client.move(sourcePath, targetPath);
-                    LOGGER.info(String.format("Moving %s on Artifactory Storage", targetPath));
+                    LOGGER.debug(String.format("Moving %s on Artifactory Storage", targetPath));
 
                     // TODO: We move all artifact but previous build artifacts still reference old name
                     // We should update the references to the new name ?

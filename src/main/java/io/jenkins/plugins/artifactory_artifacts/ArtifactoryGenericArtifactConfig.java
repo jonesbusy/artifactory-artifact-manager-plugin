@@ -189,8 +189,8 @@ public class ArtifactoryGenericArtifactConfig extends AbstractDescribableImpl<Ar
 
             try {
                 Path tmpFile = Files.createTempFile("tmp-", "jenkins-artifactory-plugin-test");
-                ArtifactoryClient client = new ArtifactoryClient(
-                        new ArtifactoryGenericArtifactConfig(storageCredentialId, serverUrl, repository, prefix));
+                ArtifactoryClient client =
+                        new ArtifactoryClient(serverUrl, repository, Utils.getCredentials(storageCredentialId));
 
                 // Upload and delete artifact to check connectivity
                 client.uploadArtifact(tmpFile, Utils.getPath(prefix, tmpFile));
