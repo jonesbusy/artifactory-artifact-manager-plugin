@@ -30,13 +30,17 @@ public final class Utils {
         return getCredentials(getArtifactConfig());
     }
 
-    public static StandardUsernamePasswordCredentials getCredentials(ArtifactoryGenericArtifactConfig config) {
+    public static StandardUsernamePasswordCredentials getCredentials(String credentialsId) {
         return CredentialsMatchers.firstOrNull(
                 CredentialsProvider.lookupCredentialsInItemGroup(
                         StandardUsernamePasswordCredentials.class, Jenkins.get(), ACL.SYSTEM2, Collections.emptyList()),
                 CredentialsMatchers.allOf(
-                        CredentialsMatchers.withId(config.getStorageCredentialId()),
+                        CredentialsMatchers.withId(credentialsId),
                         CredentialsMatchers.instanceOf(StandardUsernamePasswordCredentials.class)));
+    }
+
+    public static StandardUsernamePasswordCredentials getCredentials(ArtifactoryGenericArtifactConfig config) {
+        return getCredentials(config.getStorageCredentialId());
     }
 
     /**

@@ -69,7 +69,7 @@ public class ArtifactoryVirtualFile extends ArtifactoryAbstractVirtualFile {
         if (keyWithNoSlash.endsWith("/*view*")) {
             return false;
         }
-        return new ArtifactoryClient().isFolder(this.key);
+        return buildArtifactoryClient().isFolder(this.key);
     }
 
     @Override
@@ -78,7 +78,7 @@ public class ArtifactoryVirtualFile extends ArtifactoryAbstractVirtualFile {
         if (keyS.endsWith("/*view*/")) {
             return false;
         }
-        return new ArtifactoryClient().isFile(this.key);
+        return buildArtifactoryClient().isFile(this.key);
     }
 
     @Override
@@ -106,12 +106,12 @@ public class ArtifactoryVirtualFile extends ArtifactoryAbstractVirtualFile {
 
     @Override
     public long length() throws IOException {
-        return new ArtifactoryClient().size(this.key);
+        return buildArtifactoryClient().size(this.key);
     }
 
     @Override
     public long lastModified() throws IOException {
-        return new ArtifactoryClient().lastUpdated(this.key);
+        return buildArtifactoryClient().lastUpdated(this.key);
     }
 
     @Override
@@ -121,15 +121,20 @@ public class ArtifactoryVirtualFile extends ArtifactoryAbstractVirtualFile {
 
     @Override
     public InputStream open() throws IOException {
-        LOGGER.info(String.format("Opening %s...", this.key));
+        LOGGER.debug(String.format("Opening %s...", this.key));
         if (isDirectory()) {
             throw new FileNotFoundException("Cannot open it because it is a directory.");
         }
         if (!isFile()) {
             throw new FileNotFoundException("Cannot open it because it is not a file.");
         }
-        ArtifactoryClient client = new ArtifactoryClient();
+        ArtifactoryClient client = buildArtifactoryClient();
         return client.downloadArtifact(this.key);
+    }
+
+    private ArtifactoryClient buildArtifactoryClient() {
+        ArtifactoryGenericArtifactConfig config = Utils.getArtifactConfig();
+        return new ArtifactoryClient(config.getServerUrl(), config.getRepository(), Utils.getCredentials());
     }
 
     /**
@@ -138,7 +143,7 @@ public class ArtifactoryVirtualFile extends ArtifactoryAbstractVirtualFile {
      * @return the list of files from the prefix
      */
     private List<VirtualFile> listFilesFromPrefix(String prefix) {
-        ArtifactoryClient client = new ArtifactoryClient();
+        ArtifactoryClient client = buildArtifactoryClient();
         try {
             List<String> files = client.list(prefix);
             List<VirtualFile> virtualFiles = new ArrayList<>();

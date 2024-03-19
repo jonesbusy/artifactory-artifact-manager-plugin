@@ -3,6 +3,7 @@ package io.jenkins.plugins.artifactory_artifacts;
 import com.cloudbees.plugins.credentials.common.UsernamePasswordCredentials;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.Serializable;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
@@ -13,20 +14,18 @@ import org.jfrog.filespecs.FileSpec;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-class ArtifactoryClient {
+class ArtifactoryClient implements Serializable {
 
     public static final Logger LOGGER = LoggerFactory.getLogger(ArtifactoryClient.class);
 
-    private final ArtifactoryGenericArtifactConfig config;
+    private final String serverUrl;
+    private final String repository;
     private final UsernamePasswordCredentials credentials;
 
-    public ArtifactoryClient() {
-        this(Utils.getArtifactConfig());
-    }
-
-    public ArtifactoryClient(ArtifactoryGenericArtifactConfig config) {
-        this.config = config;
-        credentials = Utils.getCredentials(this.config);
+    public ArtifactoryClient(String serverUrl, String repository, UsernamePasswordCredentials credentials) {
+        this.serverUrl = serverUrl;
+        this.repository = repository;
+        this.credentials = credentials;
     }
 
     /**
@@ -38,7 +37,7 @@ class ArtifactoryClient {
     public void uploadArtifact(Path file, String targetPath) throws IOException {
         try (Artifactory artifactory = buildArtifactory()) {
             UploadableArtifact artifact =
-                    artifactory.repository(config.getRepository()).upload(targetPath, file.toFile());
+                    artifactory.repository(this.repository).upload(targetPath, file.toFile());
             artifact.withSize(Files.size(file));
             artifact.withListener(
                     (bytesRead, totalBytes) -> LOGGER.trace(String.format("Uploaded %d/%d", bytesRead, totalBytes)));
@@ -53,7 +52,7 @@ class ArtifactoryClient {
      */
     public void deleteArtifact(String targetPath) {
         try (Artifactory artifactory = buildArtifactory()) {
-            artifactory.repository(config.getRepository()).delete(targetPath);
+            artifactory.repository(this.repository).delete(targetPath);
         }
     }
 
@@ -64,9 +63,8 @@ class ArtifactoryClient {
      */
     public void move(String sourcePath, String targetPath) {
         try (Artifactory artifactory = buildArtifactory()) {
-            ItemHandle sourceItem =
-                    artifactory.repository(config.getRepository()).folder(sourcePath);
-            sourceItem.move(config.getRepository(), targetPath);
+            ItemHandle sourceItem = artifactory.repository(this.repository).folder(sourcePath);
+            sourceItem.move(this.repository, targetPath);
         }
     }
 
@@ -77,9 +75,8 @@ class ArtifactoryClient {
      */
     public void copy(String sourcePath, String targetPath) {
         try (Artifactory artifactory = buildArtifactory()) {
-            ItemHandle sourceItem =
-                    artifactory.repository(config.getRepository()).folder(sourcePath);
-            sourceItem.copy(config.getRepository(), targetPath);
+            ItemHandle sourceItem = artifactory.repository(this.repository).folder(sourcePath);
+            sourceItem.copy(this.repository, targetPath);
         }
     }
 
@@ -92,7 +89,7 @@ class ArtifactoryClient {
     public InputStream downloadArtifact(String targetPath) throws IOException {
         try (Artifactory artifactory = buildArtifactory()) {
             DownloadableArtifact artifact =
-                    artifactory.repository(config.getRepository()).download(targetPath);
+                    artifactory.repository(this.repository).download(targetPath);
             return artifact.doDownload();
         }
     }
@@ -106,7 +103,7 @@ class ArtifactoryClient {
     public boolean isFolder(String targetPath) throws IOException {
         try (Artifactory artifactory = buildArtifactory()) {
             try {
-                return artifactory.repository(config.getRepository()).isFolder(targetPath);
+                return artifactory.repository(this.repository).isFolder(targetPath);
             } catch (Exception e) {
                 LOGGER.debug(String.format("Failed to check if %s is a folder", targetPath));
                 return false;
@@ -127,7 +124,7 @@ class ArtifactoryClient {
         }
         try (Artifactory artifactory = buildArtifactory()) {
             FileSpec fileSpec = FileSpec.fromString(
-                    String.format("{\"files\": [{\"pattern\": \"%s/%s*\"}]}", config.getRepository(), targetPath));
+                    String.format("{\"files\": [{\"pattern\": \"%s/%s*\"}]}", this.repository, targetPath));
             return artifactory.searches().artifactsByFileSpec(fileSpec).stream()
                     .map((item -> String.format("%s/%s", item.getPath(), item.getName())))
                     .collect(Collectors.toList());
@@ -154,7 +151,7 @@ class ArtifactoryClient {
         LOGGER.trace(String.format("Getting last updated time for %s", targetPath));
         try (Artifactory artifactory = buildArtifactory()) {
             return artifactory
-                    .repository(config.getRepository())
+                    .repository(this.repository)
                     .file(targetPath)
                     .info()
                     .getLastModified()
@@ -174,10 +171,7 @@ class ArtifactoryClient {
         }
         LOGGER.trace(String.format("Getting size for %s", targetPath));
         try (Artifactory artifactory = buildArtifactory()) {
-            File file = artifactory
-                    .repository(config.getRepository())
-                    .file(targetPath)
-                    .info();
+            File file = artifactory.repository(this.repository).file(targetPath).info();
             return file.getSize();
         }
     }
@@ -188,11 +182,11 @@ class ArtifactoryClient {
      */
     private Artifactory buildArtifactory() {
         return ArtifactoryClientBuilder.create()
-                .setUrl(config.getServerUrl())
+                .setUrl(this.serverUrl)
                 .setUsername(credentials.getUsername())
                 .setPassword(credentials.getPassword().getPlainText())
                 .addInterceptorLast((request, httpContext) -> {
-                    LOGGER.info(String.format("Sending Artifactory request to %s", request.getRequestLine()));
+                    LOGGER.debug(String.format("Sending Artifactory request to %s", request.getRequestLine()));
                 })
                 .build();
     }
