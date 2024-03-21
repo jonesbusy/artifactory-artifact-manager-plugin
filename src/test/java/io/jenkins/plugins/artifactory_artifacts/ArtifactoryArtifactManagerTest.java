@@ -34,7 +34,7 @@ public class ArtifactoryArtifactManagerTest extends BaseTest {
                 StandardCharsets.UTF_8);
 
         // Setup wiremock stubs
-        setupWireMockStubs(pipelineName, wmRuntimeInfo, "", "artifact.txt");
+        setupWireMockStubs(pipelineName, wmRuntimeInfo, "", "artifact.txt", "stash.tgz");
 
         // Query job folder
         String folderPath = "/api/storage/my-generic-repo/" + pipelineName;
@@ -85,7 +85,7 @@ public class ArtifactoryArtifactManagerTest extends BaseTest {
                 StandardCharsets.UTF_8);
 
         // Setup wiremock stubs
-        setupWireMockStubs(pipelineName, wmRuntimeInfo, "", "artifact.txt");
+        setupWireMockStubs(pipelineName, wmRuntimeInfo, "", "artifact.txt", "stash.tgz");
 
         // Query build folder
         String folderPath = "/api/storage/my-generic-repo/" + pipelineName + "/1";

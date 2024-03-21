@@ -39,7 +39,7 @@ public class BaseTest {
      * @param wmRuntimeInfo the WireMock runtime info
      */
     protected void setupWireMockStubs(
-            final String jobName, WireMockRuntimeInfo wmRuntimeInfo, String prefix, String artifact) {
+            final String jobName, WireMockRuntimeInfo wmRuntimeInfo, String prefix, String artifact, String stash) {
         // WireMock stub
         WireMock wireMock = wmRuntimeInfo.getWireMock();
 
@@ -48,7 +48,8 @@ public class BaseTest {
                 .willReturn(WireMock.okJson("{}")));
 
         // Define the base URL
-        String basePath = "/api/storage/my-generic-repo/" + prefix + jobName + "/1/artifacts";
+        String artifactBasePath = "/api/storage/my-generic-repo/" + prefix + jobName + "/1/artifacts";
+        String stashBasePath = "/my-generic-repo/" + prefix + jobName + "/1/stashes";
 
         // JSON response for folder with children
         String artifactsResponse = "{"
@@ -58,9 +59,22 @@ public class BaseTest {
                 + "\"lastModified\": \"2024-03-17T13:20:19.836Z\","
                 + "\"lastUpdated\": \"2024-03-17T13:20:19.836Z\","
                 + "\"modifiedBy\": \"admin\","
-                + "\"path\": \"" + basePath + "\","
+                + "\"path\": \"" + artifactBasePath + "\","
                 + "\"repo\": \"my-generic-repo\","
-                + "\"uri\": \"http://localhost:" + wmRuntimeInfo.getHttpPort() + "/artifactory" + basePath + "\""
+                + "\"uri\": \"http://localhost:" + wmRuntimeInfo.getHttpPort() + "/artifactory" + artifactBasePath
+                + "\""
+                + "}";
+        String stashesResponse = "{"
+                + "\"children\": [{\"folder\": false, \"uri\": \"/" + artifact + "\"}],"
+                + "\"created\": \"2024-03-17T13:20:19.836Z\","
+                + "\"createdBy\": \"admin\","
+                + "\"lastModified\": \"2024-03-17T13:20:19.836Z\","
+                + "\"lastUpdated\": \"2024-03-17T13:20:19.836Z\","
+                + "\"modifiedBy\": \"admin\","
+                + "\"path\": \"" + stashBasePath + "\","
+                + "\"repo\": \"my-generic-repo\","
+                + "\"uri\": \"http://localhost:" + wmRuntimeInfo.getHttpPort() + "/artifactory" + stashBasePath
+                + "\""
                 + "}";
 
         // JSON response for single artifact
@@ -70,9 +84,9 @@ public class BaseTest {
                 + "\"lastModified\": \"2024-03-17T13:20:19.836Z\","
                 + "\"lastUpdated\": \"2024-03-17T13:20:19.836Z\","
                 + "\"modifiedBy\": \"admin\","
-                + "\"path\": \"" + basePath + "/" + artifact + "\","
+                + "\"path\": \"" + artifactBasePath + "/" + artifact + "\","
                 + "\"repo\": \"my-generic-repo\","
-                + "\"uri\": \"http://localhost:" + wmRuntimeInfo.getHttpPort() + "/artifactory" + basePath + "/"
+                + "\"uri\": \"http://localhost:" + wmRuntimeInfo.getHttpPort() + "/artifactory" + artifactBasePath + "/"
                 + artifact + "\""
                 + "}";
 
@@ -81,10 +95,14 @@ public class BaseTest {
                 + "\", \"repo\": \"my-generic-repo\", \"path\": \"" + prefix + "/" + jobName + "/1/artifacts\"}]}";
 
         // Register GET requests
-        wireMock.register(
-                WireMock.get(WireMock.urlEqualTo(basePath + "/")).willReturn(WireMock.okJson(artifactsResponse)));
-        wireMock.register(WireMock.get(WireMock.urlEqualTo(basePath + "/" + artifact))
+        wireMock.register(WireMock.get(WireMock.urlEqualTo(artifactBasePath + "/"))
+                .willReturn(WireMock.okJson(artifactsResponse)));
+        wireMock.register(WireMock.get(WireMock.urlEqualTo(artifactBasePath + "/" + artifact))
                 .willReturn(WireMock.okJson(artifactResponse)));
+        wireMock.register(
+                WireMock.get(WireMock.urlEqualTo(stashBasePath + "/")).willReturn(WireMock.okJson(stashesResponse)));
+        wireMock.register(WireMock.get(WireMock.urlEqualTo(stashBasePath + "/" + stash))
+                .willReturn(WireMock.ok().withBodyFile(stash).withHeader("Content-Type", "application/gzip")));
 
         // Register POST request
         wireMock.register(
