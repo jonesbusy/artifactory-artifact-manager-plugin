@@ -158,16 +158,23 @@ public class ArtifactoryArtifactManager extends ArtifactManager implements Stash
         }
         ArtifactoryArtifactManager artifactoryArtifactManager = (ArtifactoryArtifactManager) artifactManager;
         try {
-            listener.getLogger().println(String.format("Copy {0} artifacts and {1} stashes from {2} to {3}"));
             String stashedPath = getFilePath("stashes");
             String artifactPath = getFilePath("artifacts");
             String toStashedPath = artifactoryArtifactManager.getFilePath("stashes");
             String toArtifactPath = artifactoryArtifactManager.getFilePath("artifacts");
-            LOGGER.debug(String.format("Copying artifacts from %s to %s", artifactPath, toArtifactPath));
-            LOGGER.debug(String.format("Copying stashes from %s to %s", stashedPath, toStashedPath));
             ArtifactoryClient client = buildArtifactoryClient();
-            client.copy(stashedPath, toStashedPath);
-            client.copy(artifactPath, toArtifactPath);
+            if (client.isFolder(artifactPath)) {
+                LOGGER.debug(String.format("Copying artifacts from %s to %s", artifactPath, toArtifactPath));
+                listener.getLogger()
+                        .println(String.format("Copying artifacts from %s to %s", artifactPath, toArtifactPath));
+                client.copy(stashedPath, toStashedPath);
+            }
+            if (client.isFolder(stashedPath)) {
+                listener.getLogger()
+                        .println(String.format("Copying stashes from %s to %s", stashedPath, toStashedPath));
+                LOGGER.debug(String.format("Copying stashes from %s to %s", stashedPath, toStashedPath));
+                client.copy(artifactPath, toArtifactPath);
+            }
         } catch (Exception e) {
             listener.getLogger()
                     .printf("Failed to copy artifact and stashes on Artifactory Storage. Details %s%n", e.getMessage());
@@ -284,6 +291,10 @@ public class ArtifactoryArtifactManager extends ArtifactManager implements Stash
         public Void invoke(File f, VirtualChannel channel) throws IOException, InterruptedException {
             try (InputStream is = client.downloadArtifact(path)) {
                 new FilePath(f).untarFrom(is, FilePath.TarCompression.GZIP);
+            } catch (Exception e) {
+                LOGGER.error("Unable to unstash file", e);
+                listener.getLogger().println(String.format("Unable to unstash file: %s", e.getMessage()));
+                return null;
             } finally {
                 listener.getLogger().flush();
             }
