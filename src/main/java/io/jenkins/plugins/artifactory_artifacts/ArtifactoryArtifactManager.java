@@ -71,7 +71,12 @@ public class ArtifactoryArtifactManager extends ArtifactManager implements Stash
         ArtifactoryClient client = buildArtifactoryClient();
         LOGGER.trace(String.format("Deleting %s...", virtualPath));
         try {
-            client.deleteArtifact(virtualPath);
+            if (client.isFile(virtualPath) || client.isFolder(virtualPath)) {
+                client.deleteArtifact(virtualPath);
+            } else {
+                LOGGER.debug(String.format("No file or folder found at %s", virtualPath));
+                return false;
+            }
         } catch (Exception e) {
             LOGGER.error(String.format("Failed to delete %s", virtualPath), e);
             return false;
@@ -167,13 +172,13 @@ public class ArtifactoryArtifactManager extends ArtifactManager implements Stash
                 LOGGER.debug(String.format("Copying artifacts from %s to %s", artifactPath, toArtifactPath));
                 listener.getLogger()
                         .println(String.format("Copying artifacts from %s to %s", artifactPath, toArtifactPath));
-                client.copy(stashedPath, toStashedPath);
+                client.copy(artifactPath, toArtifactPath);
             }
             if (client.isFolder(stashedPath)) {
                 listener.getLogger()
                         .println(String.format("Copying stashes from %s to %s", stashedPath, toStashedPath));
                 LOGGER.debug(String.format("Copying stashes from %s to %s", stashedPath, toStashedPath));
-                client.copy(artifactPath, toArtifactPath);
+                client.copy(stashedPath, toStashedPath);
             }
         } catch (Exception e) {
             listener.getLogger()
