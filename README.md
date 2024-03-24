@@ -5,7 +5,6 @@
 [![LOC](https://ci.jenkins.io/job/Plugins/job/artifactory-artifact-manager-plugin/job/main/badge/icon?job=test&status=${lineOfCode}&subject=line%20of%20code&color=blue)](https://ci.jenkins.io/job/Plugins/job/artifactory-artifact-manager-plugin/job/main)
 ![Contributors](https://img.shields.io/github/contributors/jenkinsci/artifactory-artifact-manager-plugin.svg?color=blue)
 [![GitHub release](https://img.shields.io/github/release/jenkinsci/artifactory-artifact-manager-plugin.svg?label=changelog)](https://github.com/jenkinsci/artifactory-artifact-manager-plugin/releases/latest)
-[![Jenkins Plugin Installs](https://img.shields.io/jenkins/plugin/i/artifactory-artifact-manager.svg?color=blue)](https://plugins.jenkins.io/artifactory-artifact-manager)
 [![GitHub license](https://img.shields.io/github/license/jenkinsci/artifactory-artifact-manager-plugin)](https://github.com/jenkinsci/artifactory-artifact-manager-plugin/blob/main/LICENSE.md)
 
 > [!NOTE]
@@ -29,6 +28,7 @@ The plugin support both OSS and Pro versions of Artifactory, but Pro version is 
 > Limitations of OSS edition.
 
 - Not able to move artifact to another location when a job is renamed. Moving must be done manually from Artifactory UI (which is supported on OSS edition).
+- Fail to replay a job due to cannot copy artifacts and stashed to the new location.
 
 <p align="center">
   <img src="docs/artifactory_logo.png">
