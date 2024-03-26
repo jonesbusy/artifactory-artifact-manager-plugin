@@ -39,7 +39,7 @@ public class ArtifactoryVirtualFile extends ArtifactoryAbstractVirtualFile {
     @Override
     public String getName() {
         String localKey = Utils.stripTrailingSlash(key);
-        return localKey.replaceFirst(".+/", "");
+        return localKey.replaceFirst(".*/artifacts/", "");
     }
 
     @NonNull
