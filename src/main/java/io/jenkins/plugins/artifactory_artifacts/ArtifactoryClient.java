@@ -138,7 +138,19 @@ class ArtifactoryClient implements Serializable {
      * @throws IOException if the path cannot be checked
      */
     public boolean isFile(String targetPath) throws IOException {
-        return !isFolder(targetPath);
+        if (isFolder(targetPath)) {
+            return false;
+        }
+        try (Artifactory artifactory = buildArtifactory()) {
+            try {
+                File file =
+                        artifactory.repository(this.repository).file(targetPath).info();
+                return !file.isFolder();
+            } catch (Exception e) {
+                LOGGER.debug(String.format("Failed to check if %s is a file", targetPath));
+                return false;
+            }
+        }
     }
 
     /**
