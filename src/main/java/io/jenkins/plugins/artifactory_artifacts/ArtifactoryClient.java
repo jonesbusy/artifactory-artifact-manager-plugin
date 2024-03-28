@@ -4,6 +4,9 @@ import com.cloudbees.plugins.credentials.common.UsernamePasswordCredentials;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.Serializable;
+import java.io.UnsupportedEncodingException;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
@@ -37,7 +40,7 @@ class ArtifactoryClient implements Serializable {
     public void uploadArtifact(Path file, String targetPath) throws IOException {
         try (Artifactory artifactory = buildArtifactory()) {
             UploadableArtifact artifact =
-                    artifactory.repository(this.repository).upload(targetPath, file.toFile());
+                    artifactory.repository(this.repository).upload(urlEncodeParts(targetPath), file.toFile());
             artifact.withSize(Files.size(file));
             artifact.withListener(
                     (bytesRead, totalBytes) -> LOGGER.trace(String.format("Uploaded %d/%d", bytesRead, totalBytes)));
@@ -52,7 +55,7 @@ class ArtifactoryClient implements Serializable {
      */
     public void deleteArtifact(String targetPath) {
         try (Artifactory artifactory = buildArtifactory()) {
-            artifactory.repository(this.repository).delete(targetPath);
+            artifactory.repository(this.repository).delete(urlEncodeParts(targetPath));
         }
     }
 
@@ -63,8 +66,8 @@ class ArtifactoryClient implements Serializable {
      */
     public void move(String sourcePath, String targetPath) {
         try (Artifactory artifactory = buildArtifactory()) {
-            ItemHandle sourceItem = artifactory.repository(this.repository).folder(sourcePath);
-            sourceItem.move(this.repository, targetPath);
+            ItemHandle sourceItem = artifactory.repository(this.repository).folder(urlEncodeParts(sourcePath));
+            sourceItem.move(this.repository, urlEncodeParts(targetPath));
         }
     }
 
@@ -75,7 +78,7 @@ class ArtifactoryClient implements Serializable {
      */
     public void copy(String sourcePath, String targetPath) {
         try (Artifactory artifactory = buildArtifactory()) {
-            ItemHandle sourceItem = artifactory.repository(this.repository).folder(sourcePath);
+            ItemHandle sourceItem = artifactory.repository(this.repository).folder(urlEncodeParts(sourcePath));
             sourceItem.copy(this.repository, targetPath);
         }
     }
@@ -89,7 +92,7 @@ class ArtifactoryClient implements Serializable {
     public InputStream downloadArtifact(String targetPath) throws IOException {
         try (Artifactory artifactory = buildArtifactory()) {
             DownloadableArtifact artifact =
-                    artifactory.repository(this.repository).download(targetPath);
+                    artifactory.repository(this.repository).download(urlEncodeParts(targetPath));
             return artifact.doDownload();
         }
     }
@@ -103,7 +106,7 @@ class ArtifactoryClient implements Serializable {
     public boolean isFolder(String targetPath) throws IOException {
         try (Artifactory artifactory = buildArtifactory()) {
             try {
-                return artifactory.repository(this.repository).isFolder(targetPath);
+                return artifactory.repository(this.repository).isFolder(urlEncodeParts(targetPath));
             } catch (Exception e) {
                 LOGGER.debug(String.format("Failed to check if %s is a folder", targetPath));
                 return false;
@@ -143,8 +146,10 @@ class ArtifactoryClient implements Serializable {
         }
         try (Artifactory artifactory = buildArtifactory()) {
             try {
-                File file =
-                        artifactory.repository(this.repository).file(targetPath).info();
+                File file = artifactory
+                        .repository(this.repository)
+                        .file(urlEncodeParts(targetPath))
+                        .info();
                 return !file.isFolder();
             } catch (Exception e) {
                 LOGGER.debug(String.format("Failed to check if %s is a file", targetPath));
@@ -183,7 +188,10 @@ class ArtifactoryClient implements Serializable {
         }
         LOGGER.trace(String.format("Getting size for %s", targetPath));
         try (Artifactory artifactory = buildArtifactory()) {
-            File file = artifactory.repository(this.repository).file(targetPath).info();
+            File file = artifactory
+                    .repository(this.repository)
+                    .file(urlEncodeParts(targetPath))
+                    .info();
             return file.getSize();
         }
     }
@@ -201,5 +209,15 @@ class ArtifactoryClient implements Serializable {
                     LOGGER.debug(String.format("Sending Artifactory request to %s", request.getRequestLine()));
                 })
                 .build();
+    }
+
+    private String urlEncodeParts(String s) {
+        try {
+            return URLEncoder.encode(s, StandardCharsets.UTF_8.name())
+                    .replaceAll("%2F", "/")
+                    .replace("+", "%20");
+        } catch (UnsupportedEncodingException e) {
+            return s;
+        }
     }
 }

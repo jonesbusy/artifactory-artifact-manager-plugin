@@ -51,6 +51,33 @@ public class PipelineTest extends BaseTest {
     }
 
     @Test
+    public void testPipelineWithSpaces(JenkinsRule jenkinsRule, WireMockRuntimeInfo wmRuntimeInfo) throws Exception {
+
+        final String pipelineName = "test Pipeline With spaces";
+
+        configureConfig(jenkinsRule, wmRuntimeInfo, "jenkins artifacts/");
+        String pipeline = IOUtils.toString(
+                Objects.requireNonNull(
+                        PipelineTest.class.getResourceAsStream("/pipelines/archiveControllerWithSpaces.groovy")),
+                StandardCharsets.UTF_8);
+
+        // Setup wiremock stubs
+        setupWireMockStubs(pipelineName, wmRuntimeInfo, "jenkins artifacts/", "my artifact.txt", "my stash.tgz");
+
+        // Run job
+        WorkflowJob workflowJob = jenkinsRule.createProject(WorkflowJob.class, pipelineName);
+        workflowJob.setDefinition(new CpsFlowDefinition(pipeline, true));
+        WorkflowRun run1 = Objects.requireNonNull(workflowJob.scheduleBuild2(0)).waitForStart();
+        jenkinsRule.waitForCompletion(run1);
+
+        // Job success
+        assertThat(run1.getResult(), equalTo(hudson.model.Result.SUCCESS));
+
+        // Check 1 artifact
+        assertThat(run1.getArtifacts(), hasSize(1));
+    }
+
+    @Test
     public void testPipelineWithoutPrefix(JenkinsRule jenkinsRule, WireMockRuntimeInfo wmRuntimeInfo) throws Exception {
 
         final String pipelineName = "testPipelineWithoutPrefix";
