@@ -6,6 +6,9 @@ import com.cloudbees.plugins.credentials.domains.Domain;
 import com.cloudbees.plugins.credentials.impl.UsernamePasswordCredentialsImpl;
 import com.github.tomakehurst.wiremock.client.WireMock;
 import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
+import java.io.UnsupportedEncodingException;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import jenkins.model.ArtifactManagerConfiguration;
 import org.jvnet.hudson.test.JenkinsRule;
 
@@ -95,17 +98,27 @@ public class BaseTest {
                 + "\", \"repo\": \"my-generic-repo\", \"path\": \"" + prefix + "/" + jobName + "/1/artifacts\"}]}";
 
         // Register GET requests
-        wireMock.register(WireMock.get(WireMock.urlEqualTo(artifactBasePath + "/"))
+        wireMock.register(WireMock.get(WireMock.urlEqualTo(urlEncodeParts(artifactBasePath + "/")))
                 .willReturn(WireMock.okJson(artifactsResponse)));
-        wireMock.register(WireMock.get(WireMock.urlEqualTo(artifactBasePath + "/" + artifact))
+        wireMock.register(WireMock.get(WireMock.urlEqualTo(urlEncodeParts(artifactBasePath + "/" + artifact)))
                 .willReturn(WireMock.okJson(artifactResponse)));
-        wireMock.register(
-                WireMock.get(WireMock.urlEqualTo(stashBasePath + "/")).willReturn(WireMock.okJson(stashesResponse)));
-        wireMock.register(WireMock.get(WireMock.urlEqualTo(stashBasePath + "/" + stash))
+        wireMock.register(WireMock.get(WireMock.urlEqualTo(urlEncodeParts(stashBasePath + "/")))
+                .willReturn(WireMock.okJson(stashesResponse)));
+        wireMock.register(WireMock.get(WireMock.urlEqualTo(urlEncodeParts(stashBasePath + "/" + stash)))
                 .willReturn(WireMock.ok().withBodyFile(stash).withHeader("Content-Type", "application/gzip")));
 
         // Register POST request
         wireMock.register(
                 WireMock.post(WireMock.urlMatching("/api/search/aql")).willReturn(WireMock.okJson(aqlResponse)));
+    }
+
+    private String urlEncodeParts(String s) {
+        try {
+            return URLEncoder.encode(s, StandardCharsets.UTF_8.name())
+                    .replaceAll("%2F", "/")
+                    .replace("+", "%20");
+        } catch (UnsupportedEncodingException e) {
+            return s;
+        }
     }
 }
