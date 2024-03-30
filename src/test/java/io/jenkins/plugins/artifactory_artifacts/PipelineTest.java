@@ -157,7 +157,7 @@ public class PipelineTest extends BaseTest {
         // Job success
         assertThat(run1.getResult(), equalTo(hudson.model.Result.SUCCESS));
 
-        // Perform replay of the pipline
+        // Perform replay of the pipeline
         HtmlPage buildPage = jenkinsRule.createWebClient().goTo("job/testReplay/1");
         final HtmlAnchor replayLink = buildPage.getAnchorByText("Replay");
         final HtmlPage replayPage = replayLink.click();
