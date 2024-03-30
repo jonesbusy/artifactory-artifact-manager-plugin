@@ -69,7 +69,12 @@ public class ArtifactoryVirtualFile extends ArtifactoryAbstractVirtualFile {
         if (keyWithNoSlash.endsWith("/*view*")) {
             return false;
         }
-        return buildArtifactoryClient().isFolder(this.key);
+        try (ArtifactoryClient client = buildArtifactoryClient()) {
+            return client.isFolder(this.key);
+        } catch (Exception e) {
+            LOGGER.warn(String.format("Failed to check if %s is a directory", this.key), e);
+            return false;
+        }
     }
 
     @Override
@@ -78,7 +83,12 @@ public class ArtifactoryVirtualFile extends ArtifactoryAbstractVirtualFile {
         if (keyS.endsWith("/*view*/")) {
             return false;
         }
-        return buildArtifactoryClient().isFile(this.key);
+        try (ArtifactoryClient client = buildArtifactoryClient()) {
+            return client.isFile(this.key);
+        } catch (Exception e) {
+            LOGGER.warn(String.format("Failed to check if %s is a file", this.key), e);
+            return false;
+        }
     }
 
     @Override
@@ -106,12 +116,22 @@ public class ArtifactoryVirtualFile extends ArtifactoryAbstractVirtualFile {
 
     @Override
     public long length() throws IOException {
-        return buildArtifactoryClient().size(this.key);
+        try (ArtifactoryClient client = buildArtifactoryClient()) {
+            return client.size(this.key);
+        } catch (Exception e) {
+            LOGGER.warn(String.format("Failed to get size of %s", this.key), e);
+            return 0;
+        }
     }
 
     @Override
     public long lastModified() throws IOException {
-        return buildArtifactoryClient().lastUpdated(this.key);
+        try (ArtifactoryClient client = buildArtifactoryClient()) {
+            return client.lastUpdated(this.key);
+        } catch (Exception e) {
+            LOGGER.warn(String.format("Failed to get last updated time of %s", this.key), e);
+            return 0;
+        }
     }
 
     @Override
@@ -128,8 +148,12 @@ public class ArtifactoryVirtualFile extends ArtifactoryAbstractVirtualFile {
         if (!isFile()) {
             throw new FileNotFoundException("Cannot open it because it is not a file.");
         }
-        ArtifactoryClient client = buildArtifactoryClient();
-        return client.downloadArtifact(this.key);
+        try (ArtifactoryClient client = buildArtifactoryClient()) {
+            return client.downloadArtifact(this.key);
+        } catch (Exception e) {
+            LOGGER.warn(String.format("Failed to open %s", this.key), e);
+            throw new IOException(e);
+        }
     }
 
     private ArtifactoryClient buildArtifactoryClient() {
@@ -143,15 +167,14 @@ public class ArtifactoryVirtualFile extends ArtifactoryAbstractVirtualFile {
      * @return the list of files from the prefix
      */
     private List<VirtualFile> listFilesFromPrefix(String prefix) {
-        ArtifactoryClient client = buildArtifactoryClient();
-        try {
+        try (ArtifactoryClient client = buildArtifactoryClient()) {
             List<String> files = client.list(prefix);
             List<VirtualFile> virtualFiles = new ArrayList<>();
             for (String file : files) {
                 virtualFiles.add(new ArtifactoryVirtualFile(Utils.stripTrailingSlash(file), this.build));
             }
             return virtualFiles;
-        } catch (IOException e) {
+        } catch (Exception e) {
             LOGGER.warn(String.format("Failed to list files from prefix %s", prefix), e);
             return Collections.emptyList();
         }

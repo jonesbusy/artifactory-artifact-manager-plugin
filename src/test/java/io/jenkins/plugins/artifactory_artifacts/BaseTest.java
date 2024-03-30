@@ -6,7 +6,6 @@ import com.cloudbees.plugins.credentials.domains.Domain;
 import com.cloudbees.plugins.credentials.impl.UsernamePasswordCredentialsImpl;
 import com.github.tomakehurst.wiremock.client.WireMock;
 import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
-import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import jenkins.model.ArtifactManagerConfiguration;
@@ -52,7 +51,8 @@ public class BaseTest {
 
         // Define the base URL
         String artifactBasePath = "/api/storage/my-generic-repo/" + prefix + jobName + "/1/artifacts";
-        String stashBasePath = "/my-generic-repo/" + prefix + jobName + "/1/stashes";
+        String stashApiBasePath = "/api/storage/my-generic-repo/" + prefix + jobName + "/1/stashes";
+        String stashFileBasePath = "/my-generic-repo/" + prefix + jobName + "/1/stashes";
 
         // JSON response for folder with children
         String artifactsResponse = "{"
@@ -74,9 +74,9 @@ public class BaseTest {
                 + "\"lastModified\": \"2024-03-17T13:20:19.836Z\","
                 + "\"lastUpdated\": \"2024-03-17T13:20:19.836Z\","
                 + "\"modifiedBy\": \"admin\","
-                + "\"path\": \"" + stashBasePath + "\","
+                + "\"path\": \"" + stashFileBasePath + "\","
                 + "\"repo\": \"my-generic-repo\","
-                + "\"uri\": \"http://localhost:" + wmRuntimeInfo.getHttpPort() + "/artifactory" + stashBasePath
+                + "\"uri\": \"http://localhost:" + wmRuntimeInfo.getHttpPort() + "/artifactory" + stashFileBasePath
                 + "\""
                 + "}";
 
@@ -93,18 +93,38 @@ public class BaseTest {
                 + artifact + "\""
                 + "}";
 
+        String stashApiResponse = "{"
+                + "\"created\": \"2024-03-17T13:20:19.836Z\","
+                + "\"createdBy\": \"admin\","
+                + "\"lastModified\": \"2024-03-17T13:20:19.836Z\","
+                + "\"lastUpdated\": \"2024-03-17T13:20:19.836Z\","
+                + "\"modifiedBy\": \"admin\","
+                + "\"path\": \"" + stashApiBasePath + "/" + stash + "\","
+                + "\"repo\": \"my-generic-repo\","
+                + "\"uri\": \"http://localhost:" + wmRuntimeInfo.getHttpPort() + "/artifactory" + stashApiBasePath + "/"
+                + stash + "\""
+                + "}";
+
         // AQL response
         String aqlResponse = "{\"results\": [{\"name\": \"" + artifact
                 + "\", \"repo\": \"my-generic-repo\", \"path\": \"" + prefix + "/" + jobName + "/1/artifacts\"}]}";
 
         // Register GET requests
+
+        // Artifacts
         wireMock.register(WireMock.get(WireMock.urlEqualTo(urlEncodeParts(artifactBasePath + "/")))
                 .willReturn(WireMock.okJson(artifactsResponse)));
         wireMock.register(WireMock.get(WireMock.urlEqualTo(urlEncodeParts(artifactBasePath + "/" + artifact)))
                 .willReturn(WireMock.okJson(artifactResponse)));
-        wireMock.register(WireMock.get(WireMock.urlEqualTo(urlEncodeParts(stashBasePath + "/")))
+
+        // Stashes API
+        wireMock.register(WireMock.get(WireMock.urlEqualTo(urlEncodeParts(stashApiBasePath + "/" + stash)))
+                .willReturn(WireMock.okJson(stashApiResponse)));
+
+        // Stashes download
+        wireMock.register(WireMock.get(WireMock.urlEqualTo(urlEncodeParts(stashFileBasePath + "/")))
                 .willReturn(WireMock.okJson(stashesResponse)));
-        wireMock.register(WireMock.get(WireMock.urlEqualTo(urlEncodeParts(stashBasePath + "/" + stash)))
+        wireMock.register(WireMock.get(WireMock.urlEqualTo(urlEncodeParts(stashFileBasePath + "/" + stash)))
                 .willReturn(WireMock.ok().withBodyFile(stash).withHeader("Content-Type", "application/gzip")));
 
         // Register POST request
@@ -113,12 +133,8 @@ public class BaseTest {
     }
 
     private String urlEncodeParts(String s) {
-        try {
-            return URLEncoder.encode(s, StandardCharsets.UTF_8.name())
-                    .replaceAll("%2F", "/")
-                    .replace("+", "%20");
-        } catch (UnsupportedEncodingException e) {
-            return s;
-        }
+        return URLEncoder.encode(s, StandardCharsets.UTF_8)
+                .replaceAll("%2F", "/")
+                .replace("+", "%20");
     }
 }

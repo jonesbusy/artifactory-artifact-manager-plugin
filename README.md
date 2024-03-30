@@ -28,7 +28,7 @@ The plugin support both OSS and Pro versions of Artifactory, but Pro version is 
 > Limitations of OSS edition.
 
 - Not able to move artifact to another location when a job is renamed. Moving must be done manually from Artifactory UI (which is supported on OSS edition).
-- Fail to replay a job due to cannot copy artifacts and stashed to the new location.
+- Fail to replay a job due to cannot copy artifacts and stashes to the new location.
 
 <p align="center">
   <img src="docs/artifactory_logo.png">
