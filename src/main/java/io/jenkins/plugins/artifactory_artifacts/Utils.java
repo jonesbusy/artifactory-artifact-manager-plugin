@@ -4,6 +4,7 @@ import com.cloudbees.plugins.credentials.CredentialsMatchers;
 import com.cloudbees.plugins.credentials.CredentialsProvider;
 import com.cloudbees.plugins.credentials.common.StandardUsernamePasswordCredentials;
 import edu.umd.cs.findbugs.annotations.NonNull;
+import edu.umd.cs.findbugs.annotations.Nullable;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.security.ACL;
 import hudson.util.DescribableList;
@@ -17,17 +18,34 @@ import org.apache.commons.lang3.StringUtils;
 
 public final class Utils {
 
-    public static ArtifactoryGenericArtifactConfig getArtifactConfig() {
+    private Utils() {}
+
+    /**
+     * Return the artifactory config or null if not configured
+     * @return the artifactory config or null if not configured
+     */
+    public static @Nullable ArtifactoryGenericArtifactConfig getArtifactConfig() {
         ArtifactManagerConfiguration artifactManagerConfiguration = ArtifactManagerConfiguration.get();
         DescribableList<ArtifactManagerFactory, ArtifactManagerFactoryDescriptor> artifactManagerFactories =
                 artifactManagerConfiguration.getArtifactManagerFactories();
         ArtifactoryArtifactManagerFactory artifactoryArtifactManagerFactory =
                 artifactManagerFactories.get(ArtifactoryArtifactManagerFactory.class);
+        if (artifactoryArtifactManagerFactory == null) {
+            return null;
+        }
         return artifactoryArtifactManagerFactory.getConfig();
     }
 
-    public static StandardUsernamePasswordCredentials getCredentials() {
-        return getCredentials(getArtifactConfig());
+    /**
+     * Get the credentials or null if not configured
+     * @return the credentials or null if not configured
+     */
+    public static @Nullable StandardUsernamePasswordCredentials getCredentials() {
+        ArtifactoryGenericArtifactConfig config = getArtifactConfig();
+        if (config == null) {
+            return null;
+        }
+        return getCredentials(config);
     }
 
     public static StandardUsernamePasswordCredentials getCredentials(String credentialsId) {
