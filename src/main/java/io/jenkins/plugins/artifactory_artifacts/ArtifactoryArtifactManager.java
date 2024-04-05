@@ -360,6 +360,12 @@ public class ArtifactoryArtifactManager extends ArtifactManager implements Stash
         @Override
         public void onDeleted(Item item) {
             ArtifactoryGenericArtifactConfig config = Utils.getArtifactConfig();
+
+            // Not configured
+            if (config == null) {
+                return;
+            }
+
             String path = Utils.stripTrailingSlash(Utils.getFilePath(item.getFullName(), ""));
             LOGGER.debug(String.format("Checking if %s must be deleted on Artifactory Storage", path));
             try (ArtifactoryClient client =
