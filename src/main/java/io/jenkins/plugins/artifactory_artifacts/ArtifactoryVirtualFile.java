@@ -9,9 +9,9 @@ import java.io.InputStream;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.stream.Collectors;
 import jenkins.util.VirtualFile;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -25,10 +25,18 @@ public class ArtifactoryVirtualFile extends ArtifactoryAbstractVirtualFile {
     private final String key;
 
     private final transient Run<?, ?> build;
+    private final ArtifactoryClient.FileInfo fileInfo;
 
     public ArtifactoryVirtualFile(String key, Run<?, ?> build) {
         this.key = key;
         this.build = build;
+        this.fileInfo = null;
+    }
+
+    public ArtifactoryVirtualFile(ArtifactoryClient.FileInfo fileInfo, Run<?, ?> build) {
+        this.key = fileInfo.getPath();
+        this.build = build;
+        this.fileInfo = fileInfo;
     }
 
     public String getKey() {
@@ -65,6 +73,9 @@ public class ArtifactoryVirtualFile extends ArtifactoryAbstractVirtualFile {
 
     @Override
     public boolean isDirectory() throws IOException {
+        if (this.fileInfo != null) {
+            return this.fileInfo.isDirectory();
+        }
         String keyWithNoSlash = Utils.stripTrailingSlash(this.key);
         if (keyWithNoSlash.endsWith("/*view*")) {
             return false;
@@ -79,6 +90,9 @@ public class ArtifactoryVirtualFile extends ArtifactoryAbstractVirtualFile {
 
     @Override
     public boolean isFile() throws IOException {
+        if (this.fileInfo != null) {
+            return this.fileInfo.isFile();
+        }
         String keyS = this.key + "/";
         if (keyS.endsWith("/*view*/")) {
             return false;
@@ -116,6 +130,9 @@ public class ArtifactoryVirtualFile extends ArtifactoryAbstractVirtualFile {
 
     @Override
     public long length() throws IOException {
+        if (this.fileInfo != null) {
+            return this.fileInfo.getSize();
+        }
         try (ArtifactoryClient client = buildArtifactoryClient()) {
             return client.size(this.key);
         } catch (Exception e) {
@@ -126,6 +143,9 @@ public class ArtifactoryVirtualFile extends ArtifactoryAbstractVirtualFile {
 
     @Override
     public long lastModified() throws IOException {
+        if (this.fileInfo != null) {
+            return this.fileInfo.getLastUpdated();
+        }
         try (ArtifactoryClient client = buildArtifactoryClient()) {
             return client.lastUpdated(this.key);
         } catch (Exception e) {
@@ -168,12 +188,10 @@ public class ArtifactoryVirtualFile extends ArtifactoryAbstractVirtualFile {
      */
     private List<VirtualFile> listFilesFromPrefix(String prefix) {
         try (ArtifactoryClient client = buildArtifactoryClient()) {
-            List<String> files = client.list(prefix);
-            List<VirtualFile> virtualFiles = new ArrayList<>();
-            for (String file : files) {
-                virtualFiles.add(new ArtifactoryVirtualFile(Utils.stripTrailingSlash(file), this.build));
-            }
-            return virtualFiles;
+            List<ArtifactoryClient.FileInfo> files = client.list(prefix);
+            return files.stream()
+                    .map(info -> new ArtifactoryVirtualFile(info, this.build))
+                    .collect(Collectors.toList());
         } catch (Exception e) {
             LOGGER.warn(String.format("Failed to list files from prefix %s", prefix), e);
             return Collections.emptyList();

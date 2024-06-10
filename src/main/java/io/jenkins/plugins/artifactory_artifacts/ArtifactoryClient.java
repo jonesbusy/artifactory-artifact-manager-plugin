@@ -12,7 +12,7 @@ import java.nio.file.Path;
 import java.util.List;
 import java.util.stream.Collectors;
 import org.jfrog.artifactory.client.*;
-import org.jfrog.artifactory.client.model.File;
+import org.jfrog.artifactory.client.model.*;
 import org.jfrog.filespecs.FileSpec;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -111,7 +111,7 @@ class ArtifactoryClient implements AutoCloseable {
      * @return the list of files in the folder
      * @throws IOException if the files cannot be listed
      */
-    public List<String> list(String targetPath) throws IOException {
+    public List<FileInfo> list(String targetPath) throws IOException {
         if (!isFolder(targetPath)) {
             LOGGER.debug(String.format("Target path %s is not a folder. Cannot list files", targetPath));
             return List.of();
@@ -119,7 +119,11 @@ class ArtifactoryClient implements AutoCloseable {
         FileSpec fileSpec = FileSpec.fromString(
                 String.format("{\"files\": [{\"pattern\": \"%s/%s*\"}]}", this.config.repository, targetPath));
         return artifactory.searches().artifactsByFileSpec(fileSpec).stream()
-                .map((item -> String.format("%s/%s", item.getPath(), item.getName())))
+                .map((item -> new FileInfo(
+                        String.format("%s/%s", item.getPath(), item.getName()),
+                        item.getModified().getTime(),
+                        item.getSize(),
+                        item.getType())))
                 .collect(Collectors.toList());
     }
 
@@ -211,6 +215,41 @@ class ArtifactoryClient implements AutoCloseable {
     @Override
     public void close() throws Exception {
         artifactory.close();
+    }
+
+    public static final class FileInfo implements Serializable {
+        private static final long serialVersionUID = 1L;
+        private final String path;
+        private final long lastUpdated;
+        private final long size;
+        private final AqlItemType type;
+
+        public FileInfo(String path, long lastUpdated, long size, AqlItemType type) {
+            this.path = path;
+            this.lastUpdated = lastUpdated;
+            this.size = size;
+            this.type = type;
+        }
+
+        public String getPath() {
+            return path;
+        }
+
+        public long getLastUpdated() {
+            return lastUpdated;
+        }
+
+        public long getSize() {
+            return size;
+        }
+
+        public boolean isDirectory() {
+            return type.equals(AqlItemType.FOLDER);
+        }
+
+        public boolean isFile() {
+            return type.equals(AqlItemType.FILE);
+        }
     }
 
     public static final class ArtifactoryConfig implements Serializable {
