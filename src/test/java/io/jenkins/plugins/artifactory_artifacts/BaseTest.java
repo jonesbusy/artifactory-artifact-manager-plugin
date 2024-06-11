@@ -80,19 +80,6 @@ public class BaseTest {
                 + "\""
                 + "}";
 
-        // JSON response for single artifact
-        String artifactResponse = "{"
-                + "\"created\": \"2024-03-17T13:20:19.836Z\","
-                + "\"createdBy\": \"admin\","
-                + "\"lastModified\": \"2024-03-17T13:20:19.836Z\","
-                + "\"lastUpdated\": \"2024-03-17T13:20:19.836Z\","
-                + "\"modifiedBy\": \"admin\","
-                + "\"path\": \"" + artifactBasePath + "/" + artifact + "\","
-                + "\"repo\": \"my-generic-repo\","
-                + "\"uri\": \"http://localhost:" + wmRuntimeInfo.getHttpPort() + "/artifactory" + artifactBasePath + "/"
-                + artifact + "\""
-                + "}";
-
         String stashApiResponse = "{"
                 + "\"created\": \"2024-03-17T13:20:19.836Z\","
                 + "\"createdBy\": \"admin\","
@@ -106,16 +93,16 @@ public class BaseTest {
                 + "}";
 
         // AQL response
-        String aqlResponse = "{\"results\": [{\"name\": \"" + artifact
-                + "\", \"repo\": \"my-generic-repo\", \"path\": \"" + prefix + "/" + jobName + "/1/artifacts\"}]}";
+        String aqlResponse = "{\"results\": [{"
+                + "\"name\": \"" + artifact
+                + "\", \"type\": \"file\", \"modified\": \"2024-03-17T13:20:19.836Z\", \"size\": 1234,"
+                + "\"repo\": \"my-generic-repo\", \"path\": \"" + prefix + "/" + jobName + "/1/artifacts\"}]}";
 
         // Register GET requests
 
         // Artifacts
         wireMock.register(WireMock.get(WireMock.urlEqualTo(urlEncodeParts(artifactBasePath + "/")))
                 .willReturn(WireMock.okJson(artifactsResponse)));
-        wireMock.register(WireMock.get(WireMock.urlEqualTo(urlEncodeParts(artifactBasePath + "/" + artifact)))
-                .willReturn(WireMock.okJson(artifactResponse)));
 
         // Stashes API
         wireMock.register(WireMock.get(WireMock.urlEqualTo(urlEncodeParts(stashApiBasePath + "/" + stash)))
