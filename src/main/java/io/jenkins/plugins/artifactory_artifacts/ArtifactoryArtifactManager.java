@@ -19,6 +19,9 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import jenkins.MasterToSlaveFileCallable;
 import jenkins.model.ArtifactManager;
 import jenkins.util.VirtualFile;
@@ -32,6 +35,7 @@ import org.slf4j.LoggerFactory;
 public class ArtifactoryArtifactManager extends ArtifactManager implements StashManager.StashAwareArtifactManager {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ArtifactoryArtifactManager.class);
+    private static final int UPLOAD_THREADS = 4;
     private transient Run<?, ?> build;
     private final ArtifactoryGenericArtifactConfig config;
     private transient String defaultKey;
@@ -337,17 +341,32 @@ public class ArtifactoryArtifactManager extends ArtifactManager implements Stash
         }
 
         @Override
-        public Void invoke(File f, VirtualChannel channel) throws IOException, InterruptedException {
+        public Void invoke(File folder, VirtualChannel channel) throws IOException, InterruptedException {
             try (ArtifactoryClient client = new ArtifactoryClient(this.config)) {
-                for (UploadFile file : files) {
-                    LOGGER.debug(String.format("Uploading %s to %s", file.getName(), file.getUrl()));
-                    client.uploadArtifact(new File(f, file.getName()).toPath(), file.getUrl());
+                ExecutorService executor = Executors.newFixedThreadPool(UPLOAD_THREADS);
+                try {
+                    CompletableFuture<Void> allUploads = CompletableFuture.allOf(files.stream()
+                            .map(file -> CompletableFuture.runAsync(() -> upload(client, folder, file), executor))
+                            .toArray(CompletableFuture[]::new));
+                    allUploads.get();
+                } finally {
+                    executor.shutdown();
                 }
             } catch (Exception e) {
                 LOGGER.error("Unable to upload files to Artifactory", e);
                 throw new AbortException("Unable to upload files to Artifactory. Details: " + e.getMessage());
             }
             return null;
+        }
+
+        private void upload(ArtifactoryClient client, File folder, UploadFile uploadFile) {
+            try {
+                File sourceFile = new File(folder, uploadFile.getName());
+                LOGGER.debug(String.format("Uploading %s to %s", sourceFile.toPath(), uploadFile.getUrl()));
+                client.uploadArtifact(sourceFile.toPath(), uploadFile.getUrl());
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
         }
     }
 
