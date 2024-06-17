@@ -46,8 +46,8 @@ public class BaseTest {
         WireMock wireMock = wmRuntimeInfo.getWireMock();
 
         // PUT to upload artifact
-        wireMock.register(WireMock.put(WireMock.urlMatching("/my-generic-repo/" + prefix + ".*"))
-                .willReturn(WireMock.okJson("{}")));
+        wireMock.register(
+                WireMock.put(WireMock.urlMatching("/my-generic-repo/.*")).willReturn(WireMock.okJson("{}")));
 
         // Define the base URL
         String artifactBasePath = "/api/storage/my-generic-repo/" + prefix + jobName + "/1/artifacts";

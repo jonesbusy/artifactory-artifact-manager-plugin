@@ -6,13 +6,8 @@ pipeline {
     stages {
         stage('Archive artifact') {
             steps {
-                script {
-                    if (isUnix()) {
-                        sh "echo 'Hello, World!' > 'my artifact.txt'"
-                    } else {
-                        bat "echo Hello, World! > my 'artifact.txt'"
-                    }
-                }
+                writeFile file: 'my artifact.txt', text: 'Hello, World!'
+                archiveArtifacts artifacts: '*.txt', allowEmptyArchive: false
             }
         }
     }
