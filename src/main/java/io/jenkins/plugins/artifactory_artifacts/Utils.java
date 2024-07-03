@@ -8,6 +8,8 @@ import edu.umd.cs.findbugs.annotations.Nullable;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.security.ACL;
 import hudson.util.DescribableList;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.Collections;
 import jenkins.model.ArtifactManagerConfiguration;
@@ -61,6 +63,10 @@ public final class Utils {
         return getCredentials(config.getStorageCredentialId());
     }
 
+    static String urlEncodeParts(String s) {
+        return URLEncoder.encode(s, StandardCharsets.UTF_8).replace("%2F", "/").replace("+", "%20");
+    }
+
     /**
      * Get the URL of the artifact
      * @param name the name of the artifact
@@ -69,7 +75,7 @@ public final class Utils {
     public static String getUrl(String name) {
         return String.format(
                 "%s/%s/%s",
-                getArtifactConfig().getServerUrl(), getArtifactConfig().getRepository(), name);
+                getArtifactConfig().getServerUrl(), getArtifactConfig().getRepository(), urlEncodeParts(name));
     }
 
     /**
