@@ -19,6 +19,10 @@ public class UtilsTest extends BaseTest {
         assertThat(
                 Utils.getUrl("artifact.txt"),
                 is("http://localhost:" + wmRuntimeInfo.getHttpPort() + "/my-generic-repo/artifact.txt"));
+
+        assertThat(
+                Utils.getUrl("item#1.txt"),
+                is("http://localhost:" + wmRuntimeInfo.getHttpPort() + "/my-generic-repo/item%231.txt"));
     }
 
     @Test

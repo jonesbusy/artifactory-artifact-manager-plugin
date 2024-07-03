@@ -5,8 +5,6 @@ import edu.umd.cs.findbugs.annotations.NonNull;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.Serializable;
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
@@ -42,7 +40,7 @@ class ArtifactoryClient implements AutoCloseable {
      */
     public void uploadArtifact(Path file, String targetPath) throws IOException {
         UploadableArtifact artifact =
-                artifactory.repository(this.config.repository).upload(urlEncodeParts(targetPath), file.toFile());
+                artifactory.repository(this.config.repository).upload(Utils.urlEncodeParts(targetPath), file.toFile());
         artifact.withSize(Files.size(file));
         artifact.withListener(
                 (bytesRead, totalBytes) -> LOGGER.trace(String.format("Uploaded %d/%d", bytesRead, totalBytes)));
@@ -55,7 +53,7 @@ class ArtifactoryClient implements AutoCloseable {
      * @param targetPath the path of the artifact to delete
      */
     public void deleteArtifact(String targetPath) {
-        artifactory.repository(this.config.repository).delete(urlEncodeParts(targetPath));
+        artifactory.repository(this.config.repository).delete(Utils.urlEncodeParts(targetPath));
     }
 
     /**
@@ -64,8 +62,8 @@ class ArtifactoryClient implements AutoCloseable {
      * @param targetPath the target path
      */
     public void move(String sourcePath, String targetPath) {
-        ItemHandle sourceItem = artifactory.repository(this.config.repository).folder(urlEncodeParts(sourcePath));
-        sourceItem.move(this.config.repository, urlEncodeParts(targetPath));
+        ItemHandle sourceItem = artifactory.repository(this.config.repository).folder(Utils.urlEncodeParts(sourcePath));
+        sourceItem.move(this.config.repository, Utils.urlEncodeParts(targetPath));
     }
 
     /**
@@ -74,7 +72,7 @@ class ArtifactoryClient implements AutoCloseable {
      * @param targetPath the target path
      */
     public void copy(String sourcePath, String targetPath) {
-        ItemHandle sourceItem = artifactory.repository(this.config.repository).folder(urlEncodeParts(sourcePath));
+        ItemHandle sourceItem = artifactory.repository(this.config.repository).folder(Utils.urlEncodeParts(sourcePath));
         sourceItem.copy(this.config.repository, targetPath);
     }
 
@@ -86,7 +84,7 @@ class ArtifactoryClient implements AutoCloseable {
      */
     public InputStream downloadArtifact(String targetPath) throws IOException {
         DownloadableArtifact artifact =
-                artifactory.repository(this.config.repository).download(urlEncodeParts(targetPath));
+                artifactory.repository(this.config.repository).download(Utils.urlEncodeParts(targetPath));
         return artifact.doDownload();
     }
 
@@ -98,7 +96,7 @@ class ArtifactoryClient implements AutoCloseable {
      */
     public boolean isFolder(String targetPath) throws IOException {
         try {
-            return artifactory.repository(this.config.repository).isFolder(urlEncodeParts(targetPath));
+            return artifactory.repository(this.config.repository).isFolder(Utils.urlEncodeParts(targetPath));
         } catch (Exception e) {
             LOGGER.debug(String.format("Failed to check if %s is a folder", targetPath));
             return false;
@@ -140,7 +138,7 @@ class ArtifactoryClient implements AutoCloseable {
         try {
             File file = artifactory
                     .repository(this.config.repository)
-                    .file(urlEncodeParts(targetPath))
+                    .file(Utils.urlEncodeParts(targetPath))
                     .info();
             return !file.isFolder();
         } catch (Exception e) {
@@ -178,7 +176,7 @@ class ArtifactoryClient implements AutoCloseable {
         LOGGER.trace(String.format("Getting size for %s", targetPath));
         File file = artifactory
                 .repository(this.config.repository)
-                .file(urlEncodeParts(targetPath))
+                .file(Utils.urlEncodeParts(targetPath))
                 .info();
         return file.getSize();
     }
@@ -204,12 +202,6 @@ class ArtifactoryClient implements AutoCloseable {
                     LOGGER.debug(String.format("Sending Artifactory request to %s", request.getRequestLine()));
                 })
                 .build();
-    }
-
-    private String urlEncodeParts(String s) {
-        return URLEncoder.encode(s, StandardCharsets.UTF_8)
-                .replaceAll("%2F", "/")
-                .replace("+", "%20");
     }
 
     @Override
