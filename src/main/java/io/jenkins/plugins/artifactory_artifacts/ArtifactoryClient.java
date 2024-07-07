@@ -1,5 +1,6 @@
 package io.jenkins.plugins.artifactory_artifacts;
 
+import com.cloudbees.plugins.credentials.CredentialsProvider;
 import com.cloudbees.plugins.credentials.common.UsernamePasswordCredentials;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import java.io.IOException;
@@ -253,7 +254,7 @@ class ArtifactoryClient implements AutoCloseable {
         public ArtifactoryConfig(String serverUrl, String repository, UsernamePasswordCredentials credentials) {
             this.serverUrl = serverUrl;
             this.repository = repository;
-            this.credentials = credentials;
+            this.credentials = CredentialsProvider.snapshot(UsernamePasswordCredentials.class, credentials);
         }
 
         public String getServerUrl() {
