@@ -5,7 +5,6 @@ import com.cloudbees.plugins.credentials.CredentialsScope;
 import com.cloudbees.plugins.credentials.domains.Domain;
 import com.cloudbees.plugins.credentials.impl.UsernamePasswordCredentialsImpl;
 import com.github.tomakehurst.wiremock.client.WireMock;
-import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import jenkins.model.ArtifactManagerConfiguration;
@@ -13,13 +12,13 @@ import org.jvnet.hudson.test.JenkinsRule;
 
 public class BaseTest {
 
-    protected ArtifactoryGenericArtifactConfig configureConfig(
-            JenkinsRule jenkinsRule, WireMockRuntimeInfo wmRuntimeInfo, String prefix) throws Exception {
+    protected ArtifactoryGenericArtifactConfig configureConfig(JenkinsRule jenkinsRule, int port, String prefix)
+            throws Exception {
 
         // Create generic config
         ArtifactoryGenericArtifactConfig config = new ArtifactoryGenericArtifactConfig();
         config.setPrefix(prefix);
-        config.setServerUrl("http://localhost:" + wmRuntimeInfo.getHttpPort());
+        config.setServerUrl("http://localhost:" + port);
         config.setRepository("my-generic-repo");
         config.setStorageCredentialId("the-credentials-id");
 
@@ -41,9 +40,7 @@ public class BaseTest {
      * @param wmRuntimeInfo the WireMock runtime info
      */
     protected void setupWireMockStubs(
-            final String jobName, WireMockRuntimeInfo wmRuntimeInfo, String prefix, String artifact, String stash) {
-        // WireMock stub
-        WireMock wireMock = wmRuntimeInfo.getWireMock();
+            final String jobName, WireMock wireMock, int port, String prefix, String artifact, String stash) {
 
         // PUT to upload artifact
         wireMock.register(
@@ -64,7 +61,7 @@ public class BaseTest {
                 + "\"modifiedBy\": \"admin\","
                 + "\"path\": \"" + artifactBasePath + "\","
                 + "\"repo\": \"my-generic-repo\","
-                + "\"uri\": \"http://localhost:" + wmRuntimeInfo.getHttpPort() + "/artifactory" + artifactBasePath
+                + "\"uri\": \"http://localhost:" + port + "/artifactory" + artifactBasePath
                 + "\""
                 + "}";
         String stashesResponse = "{"
@@ -76,7 +73,7 @@ public class BaseTest {
                 + "\"modifiedBy\": \"admin\","
                 + "\"path\": \"" + stashFileBasePath + "\","
                 + "\"repo\": \"my-generic-repo\","
-                + "\"uri\": \"http://localhost:" + wmRuntimeInfo.getHttpPort() + "/artifactory" + stashFileBasePath
+                + "\"uri\": \"http://localhost:" + port + "/artifactory" + stashFileBasePath
                 + "\""
                 + "}";
 
@@ -88,7 +85,7 @@ public class BaseTest {
                 + "\"modifiedBy\": \"admin\","
                 + "\"path\": \"" + stashApiBasePath + "/" + stash + "\","
                 + "\"repo\": \"my-generic-repo\","
-                + "\"uri\": \"http://localhost:" + wmRuntimeInfo.getHttpPort() + "/artifactory" + stashApiBasePath + "/"
+                + "\"uri\": \"http://localhost:" + port + "/artifactory" + stashApiBasePath + "/"
                 + stash + "\""
                 + "}";
 

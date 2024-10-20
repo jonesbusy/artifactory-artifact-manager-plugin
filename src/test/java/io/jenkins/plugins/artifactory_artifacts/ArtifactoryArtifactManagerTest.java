@@ -24,7 +24,7 @@ public class ArtifactoryArtifactManagerTest extends BaseTest {
     @Test
     public void shouldDeleteArtifactWhenDeletingJob(JenkinsRule jenkinsRule, WireMockRuntimeInfo wmRuntimeInfo)
             throws Exception {
-        ArtifactoryGenericArtifactConfig config = configureConfig(jenkinsRule, wmRuntimeInfo, "");
+        ArtifactoryGenericArtifactConfig config = configureConfig(jenkinsRule, wmRuntimeInfo.getHttpPort(), "");
 
         String pipelineName = "shouldDeleteArtifactWhenDeletingJob";
 
@@ -34,7 +34,13 @@ public class ArtifactoryArtifactManagerTest extends BaseTest {
                 StandardCharsets.UTF_8);
 
         // Setup wiremock stubs
-        setupWireMockStubs(pipelineName, wmRuntimeInfo, "", "artifact.txt", "stash.tgz");
+        setupWireMockStubs(
+                pipelineName,
+                wmRuntimeInfo.getWireMock(),
+                wmRuntimeInfo.getHttpPort(),
+                "",
+                "artifact.txt",
+                "stash.tgz");
 
         // Query job folder
         String folderPath = "/api/storage/my-generic-repo/" + pipelineName;
@@ -75,7 +81,7 @@ public class ArtifactoryArtifactManagerTest extends BaseTest {
     @Test
     public void shouldDeleteArtifactWhenDeletingBuild(JenkinsRule jenkinsRule, WireMockRuntimeInfo wmRuntimeInfo)
             throws Exception {
-        ArtifactoryGenericArtifactConfig config = configureConfig(jenkinsRule, wmRuntimeInfo, "");
+        ArtifactoryGenericArtifactConfig config = configureConfig(jenkinsRule, wmRuntimeInfo.getHttpPort(), "");
 
         String pipelineName = "shouldDeleteArtifactWhenDeletingBuild";
 
@@ -85,7 +91,13 @@ public class ArtifactoryArtifactManagerTest extends BaseTest {
                 StandardCharsets.UTF_8);
 
         // Setup wiremock stubs
-        setupWireMockStubs(pipelineName, wmRuntimeInfo, "", "artifact.txt", "stash.tgz");
+        setupWireMockStubs(
+                pipelineName,
+                wmRuntimeInfo.getWireMock(),
+                wmRuntimeInfo.getHttpPort(),
+                "",
+                "artifact.txt",
+                "stash.tgz");
 
         // Query build folder
         String folderPath = "/api/storage/my-generic-repo/" + pipelineName + "/1";
@@ -126,7 +138,7 @@ public class ArtifactoryArtifactManagerTest extends BaseTest {
     @Test
     public void shouldDoValidateArtifactoryConfig(JenkinsRule jenkinsRule, WireMockRuntimeInfo wmRuntimeInfo)
             throws Exception {
-        ArtifactoryGenericArtifactConfig config = configureConfig(jenkinsRule, wmRuntimeInfo, "/jenkins");
+        ArtifactoryGenericArtifactConfig config = configureConfig(jenkinsRule, wmRuntimeInfo.getHttpPort(), "/jenkins");
         ArtifactoryGenericArtifactConfig.DescriptorImpl descriptor =
                 jenkinsRule.getInstance().getDescriptorByType(ArtifactoryGenericArtifactConfig.DescriptorImpl.class);
 
@@ -151,7 +163,7 @@ public class ArtifactoryArtifactManagerTest extends BaseTest {
     @Test
     public void shouldFailToDoValidateArtifactoryConfig(JenkinsRule jenkinsRule, WireMockRuntimeInfo wmRuntimeInfo)
             throws Exception {
-        ArtifactoryGenericArtifactConfig config = configureConfig(jenkinsRule, wmRuntimeInfo, "jenkins/");
+        ArtifactoryGenericArtifactConfig config = configureConfig(jenkinsRule, wmRuntimeInfo.getHttpPort(), "jenkins/");
         ArtifactoryGenericArtifactConfig.DescriptorImpl descriptor =
                 jenkinsRule.getInstance().getDescriptorByType(ArtifactoryGenericArtifactConfig.DescriptorImpl.class);
 
@@ -175,7 +187,7 @@ public class ArtifactoryArtifactManagerTest extends BaseTest {
 
     @Test
     public void shouldCreteCorrectFactory(JenkinsRule jenkinsRule, WireMockRuntimeInfo wmRuntimeInfo) throws Exception {
-        ArtifactoryGenericArtifactConfig config = configureConfig(jenkinsRule, wmRuntimeInfo, "jenkins/");
+        ArtifactoryGenericArtifactConfig config = configureConfig(jenkinsRule, wmRuntimeInfo.getHttpPort(), "jenkins/");
         ArtifactoryArtifactManagerFactory factory = new ArtifactoryArtifactManagerFactory(config);
         ArtifactoryArtifactManagerFactory.DescriptorImpl descriptor =
                 jenkinsRule.getInstance().getDescriptorByType(ArtifactoryArtifactManagerFactory.DescriptorImpl.class);
@@ -187,7 +199,7 @@ public class ArtifactoryArtifactManagerTest extends BaseTest {
     public void testConfigRoundtrip(JenkinsRule jenkinsRule, WireMockRuntimeInfo wmRuntimeInfo) throws Exception {
 
         // Set config
-        ArtifactoryGenericArtifactConfig config = configureConfig(jenkinsRule, wmRuntimeInfo, "jenkins/");
+        ArtifactoryGenericArtifactConfig config = configureConfig(jenkinsRule, wmRuntimeInfo.getHttpPort(), "jenkins/");
 
         // Save config
         jenkinsRule.configRoundtrip();
