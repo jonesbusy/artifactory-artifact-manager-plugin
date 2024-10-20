@@ -31,13 +31,14 @@ public class PipelineTest extends BaseTest {
         final String prefix = "jenkins/";
         final String artifact = "artifact.txt";
 
-        configureConfig(jenkinsRule, wmRuntimeInfo, prefix);
+        configureConfig(jenkinsRule, wmRuntimeInfo.getHttpPort(), prefix);
         String pipeline = IOUtils.toString(
                 Objects.requireNonNull(PipelineTest.class.getResourceAsStream("/pipelines/archiveController.groovy")),
                 StandardCharsets.UTF_8);
 
         // Setup wiremock stubs
-        setupWireMockStubs(pipelineName, wmRuntimeInfo, prefix, artifact, "stash.tgz");
+        setupWireMockStubs(
+                pipelineName, wmRuntimeInfo.getWireMock(), wmRuntimeInfo.getHttpPort(), prefix, artifact, "stash.tgz");
 
         // Run job
         WorkflowJob workflowJob = jenkinsRule.createProject(WorkflowJob.class, pipelineName);
@@ -63,14 +64,20 @@ public class PipelineTest extends BaseTest {
         final String prefix = "jenkins artifacts/";
         final String artifact = "my artifact.txt";
 
-        configureConfig(jenkinsRule, wmRuntimeInfo, prefix);
+        configureConfig(jenkinsRule, wmRuntimeInfo.getHttpPort(), prefix);
         String pipeline = IOUtils.toString(
                 Objects.requireNonNull(
                         PipelineTest.class.getResourceAsStream("/pipelines/archiveControllerWithSpaces.groovy")),
                 StandardCharsets.UTF_8);
 
         // Setup wiremock stubs
-        setupWireMockStubs(pipelineName, wmRuntimeInfo, prefix, artifact, "my stash.tgz");
+        setupWireMockStubs(
+                pipelineName,
+                wmRuntimeInfo.getWireMock(),
+                wmRuntimeInfo.getHttpPort(),
+                prefix,
+                artifact,
+                "my stash.tgz");
 
         // Run job
         WorkflowJob workflowJob = jenkinsRule.createProject(WorkflowJob.class, pipelineName);
@@ -96,13 +103,14 @@ public class PipelineTest extends BaseTest {
         final String prefix = "";
         final String artifact = "artifact.txt";
 
-        configureConfig(jenkinsRule, wmRuntimeInfo, prefix);
+        configureConfig(jenkinsRule, wmRuntimeInfo.getHttpPort(), prefix);
         String pipeline = IOUtils.toString(
                 Objects.requireNonNull(PipelineTest.class.getResourceAsStream("/pipelines/archiveController.groovy")),
                 StandardCharsets.UTF_8);
 
         // Setup wiremock stubs
-        setupWireMockStubs(pipelineName, wmRuntimeInfo, prefix, artifact, "stash.tgz");
+        setupWireMockStubs(
+                pipelineName, wmRuntimeInfo.getWireMock(), wmRuntimeInfo.getHttpPort(), prefix, artifact, "stash.tgz");
 
         // Run job
         WorkflowJob workflowJob = jenkinsRule.createProject(WorkflowJob.class, pipelineName);
@@ -129,7 +137,7 @@ public class PipelineTest extends BaseTest {
         final String prefix = "jenkins/";
         final String artifact = "artifact.txt";
 
-        configureConfig(jenkinsRule, wmRuntimeInfo, prefix);
+        configureConfig(jenkinsRule, wmRuntimeInfo.getHttpPort(), prefix);
         String pipeline = IOUtils.toString(
                 Objects.requireNonNull(PipelineTest.class.getResourceAsStream("/pipelines/archiveAgent.groovy")),
                 StandardCharsets.UTF_8);
@@ -137,7 +145,8 @@ public class PipelineTest extends BaseTest {
         DumbSlave s = jenkinsRule.createSlave(Label.get("agent"));
 
         // Setup wiremock stubs
-        setupWireMockStubs(pipelineName, wmRuntimeInfo, prefix, artifact, "stash.tgz");
+        setupWireMockStubs(
+                pipelineName, wmRuntimeInfo.getWireMock(), wmRuntimeInfo.getHttpPort(), prefix, artifact, "stash.tgz");
 
         // Run job
         WorkflowJob workflowJob = jenkinsRule.createProject(WorkflowJob.class, pipelineName);
@@ -161,13 +170,19 @@ public class PipelineTest extends BaseTest {
 
         final String pipelineName = "testReplay";
 
-        configureConfig(jenkinsRule, wmRuntimeInfo, "jenkins/");
+        configureConfig(jenkinsRule, wmRuntimeInfo.getHttpPort(), "jenkins/");
         String pipeline = IOUtils.toString(
                 Objects.requireNonNull(PipelineTest.class.getResourceAsStream("/pipelines/replay.groovy")),
                 StandardCharsets.UTF_8);
 
         // Setup wiremock stubs
-        setupWireMockStubs(pipelineName, wmRuntimeInfo, "jenkins/", "artifact.txt", "stash.tgz");
+        setupWireMockStubs(
+                pipelineName,
+                wmRuntimeInfo.getWireMock(),
+                wmRuntimeInfo.getHttpPort(),
+                "jenkins/",
+                "artifact.txt",
+                "stash.tgz");
 
         // Run job
         WorkflowJob workflowJob = jenkinsRule.createProject(WorkflowJob.class, pipelineName);

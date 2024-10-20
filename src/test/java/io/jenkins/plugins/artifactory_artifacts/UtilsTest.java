@@ -15,7 +15,7 @@ public class UtilsTest extends BaseTest {
 
     @Test
     public void shouldGetUrl(JenkinsRule jenkinsRule, WireMockRuntimeInfo wmRuntimeInfo) throws Exception {
-        configureConfig(jenkinsRule, wmRuntimeInfo, "jenkins/");
+        configureConfig(jenkinsRule, wmRuntimeInfo.getHttpPort(), "jenkins/");
         assertThat(
                 Utils.getUrl("artifact.txt"),
                 is("http://localhost:" + wmRuntimeInfo.getHttpPort() + "/my-generic-repo/artifact.txt"));
@@ -27,7 +27,7 @@ public class UtilsTest extends BaseTest {
 
     @Test
     public void shouldGetCredentials(JenkinsRule jenkinsRule, WireMockRuntimeInfo wmRuntimeInfo) throws Exception {
-        configureConfig(jenkinsRule, wmRuntimeInfo, "jenkins/");
+        configureConfig(jenkinsRule, wmRuntimeInfo.getHttpPort(), "jenkins/");
         assertThat(Utils.getCredentials().getUsername(), is("sample"));
         assertThat(Utils.getCredentials().getPassword().getPlainText(), is("sample"));
     }
