@@ -108,7 +108,7 @@ public class ArtifactoryGenericArtifactConfig extends AbstractDescribableImpl<Ar
         }
 
         @Override
-        public boolean configure(StaplerRequest req, JSONObject json) throws FormException {
+        public boolean configure(StaplerRequest2 req, JSONObject json) throws FormException {
             save();
             return super.configure(req, json);
         }
