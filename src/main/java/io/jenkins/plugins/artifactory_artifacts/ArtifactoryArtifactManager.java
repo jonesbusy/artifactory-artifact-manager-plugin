@@ -199,6 +199,17 @@ public class ArtifactoryArtifactManager extends ArtifactManager implements Stash
         return Utils.getFilePath(defaultKey, path);
     }
 
+    /**
+     * Returns the Artifactory path for an artifact file relative to the build's artifacts root.
+     * Used by {@link ArtifactoryArtifactAction} to resolve the external URL for a given artifact name.
+     *
+     * @param relativePath the artifact path as shown in the Jenkins artifact list (e.g. "foo/bar.txt")
+     * @return the full Artifactory path including prefix and build coordinates
+     */
+    String getArtifactPath(String relativePath) {
+        return getFilePath("artifacts/" + relativePath);
+    }
+
     private ArtifactoryClient buildArtifactoryClient() {
         return new ArtifactoryClient(this.config.getServerUrl(), this.config.getRepository(), Utils.getCredentials());
     }
