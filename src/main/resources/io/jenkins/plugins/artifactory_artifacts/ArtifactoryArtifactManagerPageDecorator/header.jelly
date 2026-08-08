@@ -1,0 +1,9 @@
+<?jelly escape-by-default='true'?>
+<j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:l="/lib/layout">
+    <j:if test="${it.enabled}">
+        <div id="artifactory-artifact-manager-icon-template" style="display:none" aria-hidden="true">
+            <l:icon src="symbol-jfrog-artifactory-icon-color plugin-oss-symbols-api" class="artifactory-artifact-manager-icon-source icon-sm" alt="Artifactory artifact URL"/>
+        </div>
+        <st:adjunct includes="io.jenkins.plugins.artifactory_artifacts.ArtifactoryArtifactManagerPageDecorator.adjuncts.artifactory-reference"/>
+    </j:if>
+</j:jelly>
