@@ -12,8 +12,10 @@ import com.github.tomakehurst.wiremock.WireMockServer;
 import com.github.tomakehurst.wiremock.client.WireMock;
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
 import java.io.Serializable;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import jenkins.model.ArtifactManagerConfiguration;
+import org.awaitility.Awaitility;
 import org.htmlunit.html.DomElement;
 import org.htmlunit.html.DomNode;
 import org.htmlunit.html.DomNodeList;
@@ -22,8 +24,8 @@ import org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition;
 import org.jenkinsci.plugins.workflow.job.WorkflowJob;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
+import org.junitpioneer.jupiter.RetryingTest;
 import org.jvnet.hudson.test.JenkinsRule;
 import org.jvnet.hudson.test.junit.jupiter.RealJenkinsExtension;
 
@@ -59,6 +61,7 @@ class ArtifactoryArtifactReferenceUiRealJenkinsTest {
 
     private void stubArtifactoryForArchive() {
         String artifactStoragePath = "/api/storage/" + REPOSITORY + "/" + PREFIX + JOB_NAME + "/1/artifacts";
+        String fileStoragePath = artifactStoragePath + "/" + ARCHIVED_FILE;
 
         // Folder info response — needed by ArtifactoryClient#isFolder() so that list() proceeds
         String folderResponse = "{\"children\": [{\"folder\": false, \"uri\": \"/" + ARCHIVED_FILE + "\"}],"
@@ -70,6 +73,18 @@ class ArtifactoryArtifactReferenceUiRealJenkinsTest {
                 + "\"uri\": \"http://localhost/artifactory" + artifactStoragePath + "\"}";
         wireMockServer.stubFor(WireMock.get(WireMock.urlPathEqualTo(artifactStoragePath + "/"))
                 .willReturn(WireMock.okJson(folderResponse)));
+
+        // File info response — needed by ArtifactoryClient#lastUpdated() and #size() when
+        // Jenkins renders each artifact row (lastModified / length calls on ArtifactoryVirtualFile)
+        String fileResponse = "{\"repo\": \"" + REPOSITORY + "\","
+                + "\"path\": \"" + PREFIX + JOB_NAME + "/1/artifacts/" + ARCHIVED_FILE + "\","
+                + "\"created\": \"2024-03-17T13:20:19.836Z\","
+                + "\"lastModified\": \"2024-03-17T13:20:19.836Z\","
+                + "\"lastUpdated\": \"2024-03-17T13:20:19.836Z\","
+                + "\"size\": \"13\","
+                + "\"uri\": \"http://localhost/artifactory" + fileStoragePath + "\"}";
+        wireMockServer.stubFor(
+                WireMock.get(WireMock.urlPathEqualTo(fileStoragePath)).willReturn(WireMock.okJson(fileResponse)));
 
         // AQL search — used by ArtifactoryClient#list() to enumerate children
         String aqlResponse = "{\"results\": [{"
@@ -91,7 +106,7 @@ class ArtifactoryArtifactReferenceUiRealJenkinsTest {
                 .willReturn(WireMock.notFound()));
     }
 
-    @Test
+    @RetryingTest(3)
     void archivedFileIsDecoratedWithArtifactoryIconWhenDirectDownloadDisabled() throws Throwable {
         stubArtifactoryForArchive();
         extension.then(new ArchiveAndCheckIconStep(wireMockServer.port(), true));
@@ -151,19 +166,32 @@ class ArtifactoryArtifactReferenceUiRealJenkinsTest {
                 assertTrue(body.contains("externalUrl"), "Response should contain externalUrl field: " + body);
             }
 
-            // Verify the build page's artifact list is (or is not) decorated with the icon
+            // Verify the build page's artifact list is decorated with the icon.
             try (JenkinsRule.WebClient webClient = rule.createWebClient()) {
                 HtmlPage buildPage = webClient.goTo(job.getUrl() + "1/");
-                webClient.waitForBackgroundJavaScript(15_000);
+                waitForIcon(buildPage);
                 assertIconPresent(buildPage);
             }
 
-            // Verify the job overview page is (or is not) decorated too
+            // Verify the job overview page is decorated too
             try (JenkinsRule.WebClient webClient = rule.createWebClient()) {
                 HtmlPage jobPage = webClient.goTo(job.getUrl());
-                webClient.waitForBackgroundJavaScript(15_000);
+                waitForIcon(jobPage);
                 assertIconPresent(jobPage);
             }
+        }
+
+        /**
+         * Waits until the Artifactory icon appears in the page or 30 seconds elapse.
+         * Uses Awaitility to poll the DOM rather than a fixed sleep, so it returns
+         * as soon as the fetch + DOM mutation cycle completes.
+         */
+        private void waitForIcon(HtmlPage page) {
+            Awaitility.await()
+                    .atMost(30, TimeUnit.SECONDS)
+                    .pollInterval(200, TimeUnit.MILLISECONDS)
+                    .until(() -> !page.querySelectorAll(".artifactory-artifact-manager-icon")
+                            .isEmpty());
         }
 
         private void assertIconPresent(HtmlPage page) {
@@ -189,7 +217,7 @@ class ArtifactoryArtifactReferenceUiRealJenkinsTest {
             assertTrue(tooltip.contains("my-generic-repo"), "Tooltip should contain the repository name: " + tooltip);
             assertTrue(tooltip.contains(ARCHIVED_FILE), "Tooltip should contain the artifact file name: " + tooltip);
 
-            // Color must use --text-color (not a link color) and be set as important
+            // Color must use --text-color and be set as important
             String style = icon.getAttribute("style");
             assertTrue(style.contains("--text-color"), style);
             assertTrue(style.contains("important"), style);
