@@ -2,6 +2,7 @@ package io.jenkins.plugins.artifactory_artifacts;
 
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
+import hudson.Functions;
 import hudson.model.Action;
 import hudson.model.Run;
 import java.io.IOException;
@@ -55,7 +56,9 @@ public class ArtifactoryArtifactAction implements Action {
      */
     @GET
     public void doReference(StaplerRequest2 req, StaplerResponse2 rsp, @QueryParameter String path) throws IOException {
-        run.checkPermission(Run.ARTIFACTS);
+        if (Functions.isArtifactsPermissionEnabled()) {
+            run.checkPermission(Run.ARTIFACTS);
+        }
         if (path == null || path.isBlank()) {
             rsp.sendError(400, "Missing 'path' parameter");
             return;
